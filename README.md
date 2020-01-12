@@ -1,6 +1,6 @@
-# app-clojuriststogether
+# Clojurists Together app
 
-FIXME: description
+[![CircleCI](https://circleci.com/gh/clojurists-together/clojurists-together-app.svg?style=svg)](https://circleci.com/gh/clojurists-together/clojurists-together-app)
 
 ## Installation
 
@@ -30,7 +30,7 @@ FIXME: listing of options this app accepts.
 
 ## License
 
-Copyright © 2020 FIXME
+Copyright © 2020 Clojurists Together Foundation
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
