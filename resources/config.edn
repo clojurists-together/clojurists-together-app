@@ -1,0 +1,4 @@
+{:app/jetty   {:port    3000
+               :join?   false
+               :handler #ig/ref :app/handler}
+ :app/handler {}}

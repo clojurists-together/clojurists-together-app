@@ -1,6 +1,6 @@
 (ns org.clojuriststogether.app.main
+  (:require [org.clojuriststogether.app.server :as server])
   (:gen-class))
 
 (defn -main [& args]
-  (println "Starting on" (System/getenv "PORT"))
-  )
+  (server/init))
