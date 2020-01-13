@@ -6,7 +6,8 @@
   (hiccup/html
     [:head
      [:title "Clojurists Together Members"]
-     [:link {:href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" :rel "stylesheet"}]]
+     [:link {:href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" :rel "stylesheet"}]
+     [:script {:src "https://js.stripe.com/v3/"}]]
     [:body
      [:nav.bg-white.shadow {:role "navigation"}
       [:div.container.mx-auto.p-4.flex.flex-wrap.items-center.md:flex-no-wrap

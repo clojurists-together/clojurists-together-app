@@ -7,6 +7,7 @@
                  [ring/ring-jetty-adapter "1.7.1"]
                  [metosin/reitit "0.3.10"]
                  [ring/ring-defaults "0.3.2"]
+                 [com.stripe/stripe-java "12.1.0"]
                  [metosin/ring-http-response "0.9.1"]
                  [hiccup "2.0.0-alpha1"]
                  [integrant "0.7.0"]
