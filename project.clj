@@ -8,6 +8,7 @@
                  [metosin/reitit "0.3.10"]
                  [ring/ring-defaults "0.3.2"]
                  [metosin/ring-http-response "0.9.1"]
+                 [hiccup "2.0.0-alpha1"]
                  [integrant "0.7.0"]
                  [aero "1.1.4"]
                  [jdbc-ring-session "1.2"]]
