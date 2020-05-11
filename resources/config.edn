@@ -1,5 +1,8 @@
-{:app/jetty   {:port    3000
-               :join?   false
-               :handler #ig/ref :app/handler}
- :app/handler {}
- :org.clojuriststogether.app.db/hikari-cp {:jdbc-url "jdbc:postgresql:clojurists_together_dev"}}
+{:app/jetty                                {:port    3000
+                                            :join?   false
+                                            :handler #ig/ref :app/handler}
+ :app/handler                              {:stripe #ig/ref :org.clojuriststogether.app.stripe/stripe
+                                            :db #ig/ref :org.clojuriststogether.app.db/hikari-cp}
+ :org.clojuriststogether.app.db/hikari-cp  {:jdbc-url "jdbc:postgresql:clojurists_together_dev"}
+ :org.clojuriststogether.app.stripe/stripe {:publishable-key "pk_test_uLL4Ap35oyPYZ41JZ54IGgDM00mW0EUVve"
+                                            :private-key "sk_test_"}}
