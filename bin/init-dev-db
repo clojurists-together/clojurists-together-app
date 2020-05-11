@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+psql -U postgres -c "CREATE DATABASE clojurists_together_dev"

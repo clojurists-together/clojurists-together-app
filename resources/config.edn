@@ -1,4 +1,5 @@
 {:app/jetty   {:port    3000
                :join?   false
                :handler #ig/ref :app/handler}
- :app/handler {}}
+ :app/handler {}
+ :org.clojuriststogether.app.db/hikari-cp {:jdbc-url "jdbc:postgresql:clojurists_together_dev"}}

@@ -4,7 +4,8 @@
             [ring.util.anti-forgery :as anti-forgery]
             [spec-tools.data-spec :as ds]
             [clojure.string :as str])
-  (:import (com.stripe.model Plan Product)))
+  (:import (com.stripe.model Plan Product)
+           (com.stripe.model.checkout Session)))
 
 (defn login-page [req]
   (template/template req
@@ -97,9 +98,46 @@
                                 (response/content-type "text/html"))))}
      :post {:parameters {}
             :handler    (fn [req]
-                          (-> (template/template [:h1 "Success"])
-                              (response/ok)
-                              (response/content-type "text/html")))}}]
+                          (let [;; Check if user exists
+
+
+                                ;; Create user if they don't exist
+
+                                ;; Create Checkout session
+                                plan-id (get-in req [:form-params "plan"])
+                                email (get-in req [:form-params "email"])
+                                plan (retrieve-plan-memo plan-id)
+                                session (Session/create {"payment_method_types" ["card"]
+                                                         "customer_email" email
+                                                         "subscription_data"    {"items" {"0" {"plan" (.getId plan)}}}
+                                                         "success_url"          "https://www.clojuriststogether.org/signup-success/"
+                                                         ;; TODO: better URLs
+                                                         "cancel_url"           "https://www.clojuriststogether.org/signup-success/"})
+                                ]
+                            (prn session)
+
+                            ;; Check if the user exists
+                            ;; If not then create them and create a Stripe customer
+                            ;; Create a Checkout session
+
+                            ;; Later:
+                            ;; Add them to Mailchimp
+                            ;; Add them to the website
+                            ;; Add to Google docs
+                            (-> (template/template req
+                                  [:div [:h1 "Loading checkout"]
+                                   [:script (format "var checkout = '%s'" (.getId session))]
+                                   [:script
+                                    "var stripe = Stripe('pk_test_uLL4Ap35oyPYZ41JZ54IGgDM00mW0EUVve');
+
+                                    stripe.redirectToCheckout({
+                                      sessionId: checkout}).then(function (result) {
+                                        // TODO: Handle errors
+                                      });"
+                                    ]
+                                   ])
+                                (response/ok)
+                                (response/content-type "text/html"))))}}]
    ["/register/company" {:name :register-company
                          :get  {:handler (fn [req]
                                            )}}]])

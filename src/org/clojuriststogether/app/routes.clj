@@ -11,7 +11,9 @@
 (defmethod ig/init-key :app/handler [_ _]
   (ring/ring-handler
     (ring/router
-      [["" {:middleware [[:defaults defaults/site-defaults]]}
+      [["" {:middleware [[:defaults (-> defaults/site-defaults
+                                        ;; TODO: re-enable anti-forgery
+                                        (assoc-in [:security :anti-forgery] false))]]}
         [""] {:get {:handler (fn [req] (response/found (utils/route-name->path req :login)))}}
         (pages.auth/auth-routes)]]
       {:reitit.middleware/registry  {:defaults {:name ::defaults

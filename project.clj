@@ -11,12 +11,18 @@
                  [metosin/ring-http-response "0.9.1"]
                  [hiccup "2.0.0-alpha1"]
                  [integrant "0.7.0"]
+                 [ragtime "0.8.0"]
                  [aero "1.1.4"]
-                 [jdbc-ring-session "1.2"]]
+                 [org.postgresql/postgresql "42.2.11"]
+                 [jdbc-ring-session "1.2"]
+                 [hikari-cp "2.11.0"]
+                 ]
   :min-lein-version "2.7.1"
   :main org.clojuriststogether.app.main
   :target-path "target/%s"
   :uberjar-name "clojurists-together-app.jar"
+  :aliases {"migrate"  ["run" "-m" "dev/migrate"]
+            "rollback" ["run" "-m" "dev/rollback"]}
   :profiles {:uberjar {:aot :all}
              :dev     {:dependencies [[integrant/repl "0.3.1"]]
                        :source-paths ["dev"]}})
