@@ -5,6 +5,7 @@
             [org.clojuriststogether.app.utils :as utils]
             [org.clojuriststogether.app.template :as template]
             [org.clojuriststogether.app.pages.auth :as pages.auth]
+            [org.clojuriststogether.app.webhooks :as webhooks]
             [reitit.http.interceptors.dev :as interceptors]
             [reitit.ring.middleware.exception]
             [integrant.core :as ig]))
@@ -17,7 +18,8 @@
                                         ;; TODO: re-enable anti-forgery
                                         (assoc-in [:security :anti-forgery] false))]]}
         [""] {:get {:handler (fn [req] (response/found (utils/route-name->path req :login)))}}
-        (pages.auth/auth-routes stripe db)]]
+        (pages.auth/auth-routes stripe db)]
+       ["/webhook/stripe" (webhooks/stripe-webhook db)]]
       {:reitit.middleware/registry   {:defaults   {:name ::defaults
                                                    :wrap defaults/wrap-defaults}
                                       :exceptions reitit.ring.middleware.exception/exception-middleware}

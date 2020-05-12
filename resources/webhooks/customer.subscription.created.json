@@ -1,0 +1,119 @@
+{
+  "id": "evt_1GhqWAGYL0HLUlSLrxDUV2YW",
+  "object": "event",
+  "api_version": "2019-12-03",
+  "created": 1589260741,
+  "data": {
+    "object": {
+      "id": "sub_HGNG8fNOVyoPus",
+      "object": "subscription",
+      "application_fee_percent": null,
+      "billing_cycle_anchor": 1589260740,
+      "billing_thresholds": null,
+      "cancel_at": null,
+      "cancel_at_period_end": false,
+      "canceled_at": null,
+      "collection_method": "charge_automatically",
+      "created": 1589260740,
+      "current_period_end": 1591939140,
+      "current_period_start": 1589260740,
+      "customer": "cus_HGNGsBYlu1rIJB",
+      "days_until_due": null,
+      "default_payment_method": "pm_1GhqW8GYL0HLUlSLYf48GP11",
+      "default_source": null,
+      "default_tax_rates": [
+      ],
+      "discount": null,
+      "ended_at": null,
+      "items": {
+        "object": "list",
+        "data": [
+          {
+            "id": "si_HGNGbd6rs1zLuE",
+            "object": "subscription_item",
+            "billing_thresholds": null,
+            "created": 1589260741,
+            "metadata": {
+            },
+            "plan": {
+              "id": "plan_GY8ntpqaHEUlza",
+              "object": "plan",
+              "active": true,
+              "aggregate_usage": null,
+              "amount": 4000,
+              "amount_decimal": "4000",
+              "billing_scheme": "per_unit",
+              "created": 1579058750,
+              "currency": "usd",
+              "interval": "month",
+              "interval_count": 1,
+              "livemode": false,
+              "metadata": {
+              },
+              "nickname": "Monthly",
+              "product": "prod_GY8mYTV75Ha2fY",
+              "tiers": null,
+              "tiers_mode": null,
+              "transform_usage": null,
+              "trial_period_days": null,
+              "usage_type": "licensed"
+            },
+            "quantity": 1,
+            "subscription": "sub_HGNG8fNOVyoPus",
+            "tax_rates": [
+            ]
+          }
+        ],
+        "has_more": false,
+        "total_count": 1,
+        "url": "/v1/subscription_items?subscription=sub_HGNG8fNOVyoPus"
+      },
+      "latest_invoice": "in_1GhqW8GYL0HLUlSLkrYeTBki",
+      "livemode": false,
+      "metadata": {
+      },
+      "next_pending_invoice_item_invoice": null,
+      "pause_collection": null,
+      "pending_invoice_item_interval": null,
+      "pending_setup_intent": null,
+      "pending_update": null,
+      "plan": {
+        "id": "plan_GY8ntpqaHEUlza",
+        "object": "plan",
+        "active": true,
+        "aggregate_usage": null,
+        "amount": 4000,
+        "amount_decimal": "4000",
+        "billing_scheme": "per_unit",
+        "created": 1579058750,
+        "currency": "usd",
+        "interval": "month",
+        "interval_count": 1,
+        "livemode": false,
+        "metadata": {
+        },
+        "nickname": "Monthly",
+        "product": "prod_GY8mYTV75Ha2fY",
+        "tiers": null,
+        "tiers_mode": null,
+        "transform_usage": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "quantity": 1,
+      "schedule": null,
+      "start_date": 1589260740,
+      "status": "incomplete",
+      "tax_percent": null,
+      "trial_end": null,
+      "trial_start": null
+    }
+  },
+  "livemode": false,
+  "pending_webhooks": 1,
+  "request": {
+    "id": "req_CXymgCmxNqY7zr",
+    "idempotency_key": null
+  },
+  "type": "customer.subscription.created"
+}

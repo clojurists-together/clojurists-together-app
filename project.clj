@@ -13,11 +13,11 @@
                  [integrant "0.7.0"]
                  [ragtime "0.8.0"]
                  [aero "1.1.4"]
+                 [cheshire "5.10.0"]
                  [org.postgresql/postgresql "42.2.11"]
                  [honeysql "0.9.10"]
                  [jdbc-ring-session "1.2"]
-                 [hikari-cp "2.11.0"]
-                 ]
+                 [hikari-cp "2.11.0"]]
   :min-lein-version "2.7.1"
   :main org.clojuriststogether.app.main
   :target-path "target/%s"
