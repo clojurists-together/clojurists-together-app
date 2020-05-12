@@ -4,16 +4,16 @@
     [org.clojuriststogether.app.server]
     [ragtime.jdbc :as jdbc]
     [ragtime.repl :as repl]
-    [org.clojuriststogether.app.db :as db]))
+    [org.clojuriststogether.app.server :as server]))
 
-(ig-repl/set-prep! org.clojuriststogether.app.server/read-config)
+(ig-repl/set-prep! (fn [] (server/prep :dev)))
 
 (def go ig-repl/go)
 (def halt ig-repl/halt)
 (def reset ig-repl/reset)
 
 (defn load-config []
-  {:datastore  (jdbc/sql-database (db/jdbc-url "jdbc:postgresql:clojurists_together_dev"))
+  {:datastore (jdbc/sql-database (get-in (server/config :dev) [:org.clojuriststogether.app.db/hikari-cp :jdbc-url]))
    :migrations (jdbc/load-resources "migrations")})
 
 (defn migrate []

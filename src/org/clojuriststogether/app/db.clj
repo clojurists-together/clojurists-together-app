@@ -11,7 +11,3 @@
 (defmethod ig/halt-key! ::hikari-cp
   [_ ds]
   (hikari/close-datasource (:datasource ds)))
-
-(defn jdbc-url [url]
-  (or (some-> (System/getenv "JDBC_DATABASE_URL"))
-      url))

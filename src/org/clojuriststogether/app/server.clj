@@ -2,17 +2,20 @@
   (:require [ring.adapter.jetty :as jetty]
             [integrant.core :as ig]
             [org.clojuriststogether.app.routes]
-            [org.clojuriststogether.app.db :as db]
+            [aero.core :as aero]
             [clojure.java.io :as io]))
 
-(defn read-config []
-  (-> (ig/read-string (slurp (io/resource "config.edn")))
-      (update-in [:app/jetty :port]
-                 (fn [port]
-                   (or (some-> (System/getenv "PORT") Long/parseLong)
-                       port)))
-      (update-in [:org.clojuriststogether.app.db/hikari-cp :jdbc-url]
-                 db/jdbc-url)))
+(defmethod aero/reader 'ig/ref
+  [_ tag value]
+  (ig/ref value))
+
+(defn config [profile]
+  (aero/read-config (io/resource "config.edn") {:profile profile}))
+
+(defn prep [profile]
+  (let [config (config profile)]
+    (ig/load-namespaces config)
+    config))
 
 (defmethod ig/init-key :app/jetty [_ {:keys [port join? handler]}]
   (println "server running in port" port)
@@ -21,5 +24,5 @@
 (defmethod ig/halt-key! :app/jetty [_ server]
   (.stop server))
 
-(defn init []
-  (ig/init (read-config)))
+(defn init [profile]
+  (ig/init (prep profile)))
