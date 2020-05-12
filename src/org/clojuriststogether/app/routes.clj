@@ -20,9 +20,9 @@
         [""] {:get {:handler (fn [req] (response/found (utils/route-name->path req :login)))}}
         (pages.auth/auth-routes stripe db)]
        ["/webhook/stripe" (webhooks/stripe-webhook db)]]
-      {:reitit.middleware/registry   {:defaults   {:name ::defaults
-                                                   :wrap defaults/wrap-defaults}
-                                      :exceptions reitit.ring.middleware.exception/exception-middleware}
+      {:reitit.middleware/registry {:defaults {:name ::defaults
+                                               :wrap defaults/wrap-defaults}
+                                    :exceptions reitit.ring.middleware.exception/exception-middleware}
        :reitit.interceptor/transform interceptors/print-context-diffs})
     (ring/create-default-handler
       {:not-found (constantly {:status 404 :body "Not Found"})})))

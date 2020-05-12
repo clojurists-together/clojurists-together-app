@@ -18,8 +18,8 @@
                        nil
                        (get-in object [:plan :id]))]
          (->> {:update :members
-               :set    {:subscription_plan plan-id}
-               :where  [:= :stripe_customer_id customer-id]}
+               :set {:subscription_plan plan-id}
+               :where [:= :stripe_customer_id customer-id]}
               (sql/format)
               (jdbc/execute! db)))
        (catch Exception e
