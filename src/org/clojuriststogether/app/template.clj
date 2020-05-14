@@ -12,7 +12,7 @@
      [:nav.bg-white.shadow {:role "navigation"}
       [:div.container.mx-auto.p-4.flex.flex-wrap.items-center.md:flex-no-wrap
        [:div.mr-4.md:mr-8
-        [:a {:href "#" :rel "home"}
+        [:a {:href "/" :rel "home"}
          "Clojurists Together"
          ;; Put our logo here
          #_[:svg.w-10.h-10.text-purple-600 {:width "54" :height "54" :viewBox "0 0 54 54" :xmlns "http://www.w3.org/2000/svg"}

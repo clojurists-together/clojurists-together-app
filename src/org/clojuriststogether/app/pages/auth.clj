@@ -2,16 +2,22 @@
   (:require [org.clojuriststogether.app.template :as template]
             [ring.util.http-response :as response]
             [ring.util.anti-forgery :as anti-forgery]
+            [org.clojuriststogether.app.spec :as specs]
             [honeysql.core :as sql]
             [honeysql.helpers :as hh]
             [spec-tools.data-spec :as ds]
             [clojure.string :as str]
-            [clojure.java.jdbc :as jdbc])
+            [clojure.java.jdbc :as jdbc]
+            [clojure.spec.alpha :as s])
   (:import (com.stripe.model Plan Product Customer)
 
-           com.stripe.model.checkout.Session))
+           com.stripe.model.checkout.Session
+           (com.stripe.exception InvalidRequestException)))
 
 (def sample-email "john@clojurelover.com")
+
+(def developer-member [:a.inline-block.align-baseline.font-bold.text-blue-500.hover:text-blue-800 {:href "https://www.clojuriststogether.org/developers/"} "Developer"])
+(def company-member [:a.inline-block.align-baseline.font-bold.text-blue-500.hover:text-blue-800 {:href "https://www.clojuriststogether.org/companies/"} "Company"])
 
 (defn login-page [req]
   (template/template req
@@ -21,16 +27,23 @@
                         {:method "POST"}
                         [:div.mb-4
                          [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email"]
-                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline {:type "text" :name "email" :placeholder sample-email}]]
+                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                          {:type "email" :name "email" :placeholder sample-email :required true}]]
+                        (anti-forgery/anti-forgery-field)
                         [:div.flex.items-center.justify-between
                          [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign In"]
-                         [:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]]]]))
+                         #_[:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]
+                        [:p.mt-4.text-sm "Not a member yet? Sign up as a " developer-member " or " company-member " member."]
+                        ]
+
+                       ]]))
 
 (defn checkout-response [req session stripe]
   (-> (template/template req
                          [:div [:h1 "Loading checkout"]
                           [:script (format "var checkout = '%s'" (.getId session))]
                           [:script
+                           ;; SECURITY TODO: do this more securely
                            (format
                              "var stripe = Stripe('%s');
 
@@ -50,6 +63,10 @@
                                              ;; TODO: better URLs
                                              "cancel_url" "https://www.clojuriststogether.org/signup-success/"}))
 
+(defn self-serve-session [customer-id]
+  (com.stripe.model.billingportal.Session/create
+    {"customer" customer-id}))
+
 (defn member-exists? [db email]
   (->> {:select [:email]
         :from [:members]
@@ -60,12 +77,20 @@
        boolean))
 
 (defn retrieve-plan [plan-id]
-  (Plan/retrieve plan-id))
+  (try (Plan/retrieve plan-id)
+       (catch InvalidRequestException e
+         (throw (ex-info "Plan not found" {:type :reitit.ring/response
+                                           :response {:status 422
+                                                      :body "<h1>Plan not found</h1>"}})))))
 
 (def retrieve-plan-memo (memoize retrieve-plan))
 
 (defn retrieve-product [product-id]
-  (Product/retrieve product-id))
+  (try (Product/retrieve product-id)
+       (catch InvalidRequestException e
+         (throw (ex-info "Product not found" {:type :reitit.ring/response
+                                           :response {:status 422
+                                                      :body "<h1>Product not found</h1>"}})))))
 
 (def retrieve-product-memo (memoize retrieve-product))
 
@@ -74,10 +99,9 @@
               :get {:handler (fn [req]
                                (-> (response/ok (login-page req))
                                    (response/content-type "text/html")))}
-              :post {:parameters {:query {:email string?}}
+              :post {:parameters {:form {:email ::specs/email}}
                      :handler
                      (fn [req]
-                       (prn "Start")
                        (let [email (get-in req [:form-params "email"])
                              customer-id (->> {:select [:stripe_customer_id]
                                                :from [:members]
@@ -86,28 +110,20 @@
                                               (jdbc/query db)
                                               first
                                               :stripe_customer_id)]
-                         (prn "Customer ID" customer-id email)
-                         (if customer-id
-                           (let [_ (prn "got it")
-                                 self-serve-session (com.stripe.model.billingportal.Session/create
-                                                      {"customer" customer-id})]
-                             (-> (response/ok (template/template req
-                                                                 [:h1 "Login success"]
-                                                                 [:p "Check your email for a link to manage your subscription"]
-                                                                 [:a {:href (.getUrl self-serve-session)} "Manage Your Subscription"]
-
-                                                                 ))
-                                 (response/content-type "text/html")))
-                           (-> (response/ok (template/template req
-                                                               [:h1 "Login failed"]
-                                                               ;; TODO: include URLs here
-                                                               [:p "No membership for this email. Sign up for a Company or Developer membership"]))
-                               (response/content-type "text/html"))))
-
-                       )}}]
+                         (-> (if customer-id
+                               (template/template req
+                                                  [:h1 "Login success"]
+                                                  [:p "Check your email for a link to manage your subscription"]
+                                                  ;; TODO: send this in an email
+                                                  )
+                               (template/template req
+                                                  [:h1 "Login failed"]
+                                                  [:p "No membership for this email. Sign up for a " developer-member " or " company-member " membership"]))
+                             (response/ok)
+                             (response/content-type "text/html"))))}}]
    ["/register/developer"
     {:name :register-developer
-     :get {:parameters {:query {:plan string?}}
+     :get {:parameters {:query {:plan ::specs/plan-id}}
            :handler (fn [req]
                       ;; TODO: use :parameters
                       (let [plan-id (get-in req [:query-params "plan"])
@@ -139,13 +155,13 @@
                                   ]
                                  [:div.mb-4
                                   [:p "You'll enter your card details on the next screen"]]
-
                                  [:div.flex.items-center.justify-between
                                   [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]]]])
                             (response/ok)
                             (response/content-type "text/html"))))}
      :post {:parameters {:form {:name string?
-                                :email string?}}
+                                :email ::specs/email
+                                :plan ::specs/plan-id}}
             :handler (fn [req]
                        (try
                          ;; TODO: use a transaction!!
@@ -185,7 +201,7 @@
    ["/register/company"
     {:name :register-company
      :get {:parameters
-           {:query {:plan string?}}
+           {:query {:plan ::specs/plan-id}}
            :handler
            (fn [req]
              (let [plan-id (get-in req [:query-params "plan"])
@@ -247,13 +263,16 @@
                          [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]]]])
                    (response/ok)
                    (response/content-type "text/html"))))}
-     :post {:parameter
+     :post {:parameters
             {:form {:name string?
-                    :email string?
+                    :email ::specs/email
                     :org-name string?
                     :org-url string?
-                    (ds/opt :invoicing-email) string?
-                    (ds/opt :updates-email) string?}}
+                    :plan ::specs/plan-id
+                    (ds/opt :invoicing-email) (s/or :empty str/blank?
+                                                    :email ::specs/email)
+                    (ds/opt :updates-email) (s/or :empty str/blank?
+                                                  :email ::specs/email)}}
             :handler
             (fn [req]
               (try
@@ -266,6 +285,8 @@
                           ;; TODO: send them to login page
                           ;; If they do, send them to the page to update membership details
                           (throw (ex-info "Already a member" {:email email})))
+                      invoicing-email (if (str/blank? invoicing-email) nil invoicing-email)
+                      updates-email (if (str/blank? updates-email) nil updates-email)
                       customer (Customer/create {"email" email
                                                  "name" org-name
                                                  ;; TODO: work out how to set the invoicing email via API
