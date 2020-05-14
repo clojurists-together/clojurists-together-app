@@ -33,4 +33,5 @@
             "rollback" ["run" "-m" "dev/rollback"]}
   :profiles {:uberjar {:aot :all}
              :dev     {:dependencies [[integrant/repl "0.3.1"]]
+                       :resource-paths ["dev-resources"]
                        :source-paths ["dev"]}})
