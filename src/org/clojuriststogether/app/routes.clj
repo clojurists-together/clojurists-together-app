@@ -22,7 +22,7 @@
 
 (defmethod ig/init-key :app/handler [_ {:keys [stripe db]}]
   (let [store (memory-session/memory-store)
-        routes [["" {:middleware [#_[:defaults defaults/site-defaults]
+        routes [["" {:middleware [
                                   :parameters
                                   :format-negotiate
                                   :format-response
@@ -33,7 +33,17 @@
                                   :multipart
                                   [:ring-session {:store store}]
                                   :csrf
-                                  ]}
+                                  [:defaults {:cookies true
+                                              :session {:flash true
+                                                        :cookie-attrs {:http-only true, :same-site :strict}}
+                                              :security {:xss-protection {:enable? true, :mode :block}
+                                                         :frame-options :sameorigin
+                                                         :content-type-options :nosniff}
+                                              :static {:resources "public"}
+                                              :responses {:not-modified-responses true
+                                                          :absolute-redirects true
+                                                          :content-types true
+                                                          :default-charset "utf-8"}}]]}
                  ["/" {:get {:handler (fn [req] (response/found (utils/route-name->path req :login)))}}]
                  (pages.auth/auth-routes stripe db)]
                 ;; TODO: middleware for Stripe
@@ -43,8 +53,7 @@
                  ;; TODO: disable diffs in prod
                  {:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
                   :validate spec/validate ;; enable spec validation for route data
-                  :reitit.middleware/registry {:defaults {:name ::defaults
-                                                          :wrap defaults/wrap-defaults}
+                  :reitit.middleware/registry {
                                                ;; query-params & form-params
                                                :parameters parameters/parameters-middleware
                                                ;; content-negotiation
@@ -66,6 +75,9 @@
                                                               :wrap ring.middleware.session/wrap-session}
                                                :csrf {:name ::csrf
                                                       :wrap ring.middleware.anti-forgery/wrap-anti-forgery}
+                                               ;; defaults
+                                               :defaults {:name ::defaults
+                                                          :wrap defaults/wrap-defaults}
                                                }
                   :exception pretty/exception
                   :data {:coercion reitit.coercion.spec/coercion
