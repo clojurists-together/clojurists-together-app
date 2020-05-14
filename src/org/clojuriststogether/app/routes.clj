@@ -56,12 +56,16 @@
                  ["/" {:get {:handler (fn [req] (response/found (utils/route-name->path req :login)))}}]
                  (pages.auth/auth-routes stripe db)]
                 ;; TODO: middleware for Stripe
-                ["/webhook/stripe" (webhooks/stripe-webhook db)]]
+                ["" {:middleware [:exception
+                                  [:sentry nil {:error-fn (fn [req e] (throw e))}]
+                                  :format-response
+                                  :coerce-response]}
+                 (webhooks/stripe-webhook db)]]
         router (ring/router
                  routes
                  ;; TODO: disable diffs in prod
                  {:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
-                  :validate spec/validate ;; enable spec validation for route data
+                  :validate spec/validate                   ;; enable spec validation for route data
                   :reitit.middleware/registry {
                                                ;; query-params & form-params
                                                :parameters parameters/parameters-middleware

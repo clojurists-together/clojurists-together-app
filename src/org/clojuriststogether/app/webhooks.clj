@@ -24,13 +24,17 @@
          (jdbc/execute! db))))
 
 (defn stripe-webhook [db]
-  (fn [req]
-    (let [payload (json/parse-stream (io/reader (:body req)) true)
-          webhook-type (get payload :type)]
-      (prn "Handling" webhook-type)
-      (case webhook-type
-        ("customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted")
-        (handle-subscription-event db payload)
-        (prn "Ignoring webhook" {:webhook-type webhook-type}))
-
-      (response/ok))))
+  ["/webhook/stripe"
+   {:post
+    {:handler (fn [req]
+                (let [payload (json/parse-stream (io/reader (:body req)) true)
+                      webhook-type (get payload :type)
+                      id (get payload :id)]
+                  (prn "Handling" webhook-type)
+                  (case webhook-type
+                    ("customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted")
+                    (handle-subscription-event db payload)
+                    (prn "Ignoring webhook" {:webhook-type webhook-type}))
+                  (response/ok {:type webhook-type
+                                :id id
+                                :status "accepted"})))}}])
