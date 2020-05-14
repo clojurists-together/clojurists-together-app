@@ -6,6 +6,7 @@
             [org.clojuriststogether.app.pages.auth :as pages.auth]
             [org.clojuriststogether.app.webhooks :as webhooks]
             [ring.middleware.session.memory :as memory-session]
+            [sentry-clj.ring]
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.middleware.exception :as exception]
             [reitit.ring.middleware.dev :as dev]
@@ -20,13 +21,21 @@
             [integrant.core :as ig]
             [muuntaja.core :as m]))
 
-(defmethod ig/init-key :app/handler [_ {:keys [stripe db]}]
-  (let [store (memory-session/memory-store)
-        routes [["" {:middleware [
+(defmethod ig/init-key :app/session-store [_ _]
+  (memory-session/memory-store))
+
+(defmethod ig/suspend-key! :app/session-store [_ _])
+(defmethod ig/resume-key :app/session-store [k v old-val old-impl]
+  old-impl)
+
+(defmethod ig/init-key :app/handler [_ {:keys [stripe db store]}]
+  (let [routes [["" {:middleware [
                                   :parameters
                                   :format-negotiate
                                   :format-response
+                                  ;; TODO: better exception filtering
                                   :exception
+                                  [:sentry nil {:error-fn (fn [req e] (throw e))}]
                                   :format-request
                                   :coerce-response
                                   :coerce-request
@@ -62,6 +71,9 @@
                                                :format-response muuntaja/format-response-middleware
                                                ;; exception handling
                                                :exception exception/exception-middleware
+                                               ;; Sentry exception handling
+                                               :sentry {:name ::sentry
+                                                        :wrap sentry-clj.ring/wrap-report-exceptions}
                                                ;; decoding request body
                                                :format-request muuntaja/format-request-middleware
                                                ;; coercing response body

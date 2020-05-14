@@ -2,7 +2,9 @@
              :join? false
              :handler #ig/ref :app/handler}
  :app/handler {:stripe #ig/ref :org.clojuriststogether.app.stripe/stripe
-               :db #ig/ref :org.clojuriststogether.app.db/hikari-cp}
+               :db #ig/ref :org.clojuriststogether.app.db/hikari-cp
+               :store #ig/ref :app/session-store}
+ :app/session-store nil
  :org.clojuriststogether.app.db/hikari-cp {:jdbc-url #or [#env "JDBC_DATABASE_URL" "jdbc:postgresql:clojurists_together_dev"]}
  :org.clojuriststogether.app.stripe/stripe {:publishable-key #env "STRIPE_PUBLISHABLE_KEY"
                                             :secret-key #env "STRIPE_SECRET_KEY"}}

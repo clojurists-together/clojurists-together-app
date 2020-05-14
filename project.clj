@@ -16,6 +16,7 @@
                  [cheshire "5.10.0"]
                  [org.postgresql/postgresql "42.2.11"]
                  [honeysql "0.9.10"]
+                 [io.sentry/sentry-clj "0.7.2"]
                  [jdbc-ring-session "1.2"]
                  [hikari-cp "2.11.0"]]
   :min-lein-version "2.7.1"

@@ -83,6 +83,11 @@
                                            :response {:status 422
                                                       :body "<h1>Plan not found</h1>"}})))))
 
+(defn already-a-member-ex [email]
+  (ex-info "Email is already a member" {:type :reitit.ring/response
+                                        :response {:status 422
+                                                   :body (format "<h1>Email %s is already a member. Try logging in.</h1>" email)}}))
+
 (def retrieve-plan-memo (memoize retrieve-plan))
 
 (defn retrieve-product [product-id]
@@ -173,7 +178,7 @@
                                _ (when exists?
                                    ;; TODO: send them to login page
                                    ;; If they do, send them to the page to update membership details
-                                   (throw (ex-info "Already a member" {:email email})))
+                                   (throw (already-a-member-ex email)))
                                customer (Customer/create {"email" email
                                                           "name" name})
                                customer-id (.getId customer)
@@ -284,7 +289,7 @@
                       _ (when exists?
                           ;; TODO: send them to login page
                           ;; If they do, send them to the page to update membership details
-                          (throw (ex-info "Already a member" {:email email})))
+                          (throw (already-a-member-ex email)))
                       invoicing-email (if (str/blank? invoicing-email) nil invoicing-email)
                       updates-email (if (str/blank? updates-email) nil updates-email)
                       customer (Customer/create {"email" email
