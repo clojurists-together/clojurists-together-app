@@ -1,2 +1,2 @@
-web: java $JVM_OPTS -jar target/uberjar/clojurists-together-app.jar
+web: java $JVM_OPTS -jar target/uberjar/clojurists-together-app.jar prod
 release: lein migrate
