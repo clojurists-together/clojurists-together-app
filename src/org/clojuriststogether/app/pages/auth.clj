@@ -168,41 +168,38 @@
                                 :email ::specs/email
                                 :plan ::specs/plan-id}}
             :handler (fn [req]
-                       (try
-                         ;; TODO: use a transaction!!
-                         (let [
-                               {:strs [email name]} (get req :form-params)
-                               ;; Check if user exists
-                               ;; Create member if they don't exist
-                               exists? (member-exists? db email)
-                               _ (when exists?
-                                   ;; TODO: send them to login page
-                                   ;; If they do, send them to the page to update membership details
-                                   (throw (already-a-member-ex email)))
-                               customer (Customer/create {"email" email
-                                                          "name" name})
-                               customer-id (.getId customer)
-                               member (->> {:insert-into :members
-                                            :values [{:email email
-                                                      :person_name name
-                                                      :member_type "developer"
-                                                      :stripe_customer_id customer-id}]}
-                                           (sql/format)
-                                           (jdbc/execute! db))
 
-                               ;; Create Checkout session
-                               plan-id (get-in req [:form-params "plan"])
-                               plan (retrieve-plan-memo plan-id)
-                               session (checkout-session customer-id plan)]
+                       ;; TODO: use a transaction!!
+                       (let [
+                             {:strs [email name]} (get req :form-params)
+                             ;; Check if user exists
+                             ;; Create member if they don't exist
+                             exists? (member-exists? db email)
+                             _ (when exists?
+                                 ;; TODO: send them to login page
+                                 ;; If they do, send them to the page to update membership details
+                                 (throw (already-a-member-ex email)))
+                             customer (Customer/create {"email" email
+                                                        "name" name})
+                             customer-id (.getId customer)
+                             member (->> {:insert-into :members
+                                          :values [{:email email
+                                                    :person_name name
+                                                    :member_type "developer"
+                                                    :stripe_customer_id customer-id}]}
+                                         (sql/format)
+                                         (jdbc/execute! db))
 
-                           ;; Later:
-                           ;; Add them to Mailchimp
-                           ;; Add them to the website
-                           ;; Add to Google docs
-                           (checkout-response req session stripe))
-                         (catch Exception e
-                           (prn e)
-                           (throw e))))}}]
+                             ;; Create Checkout session
+                             plan-id (get-in req [:form-params "plan"])
+                             plan (retrieve-plan-memo plan-id)
+                             session (checkout-session customer-id plan)]
+
+                         ;; Later:
+                         ;; Add them to Mailchimp
+                         ;; Add them to the website
+                         ;; Add to Google docs
+                         (checkout-response req session stripe)))}}]
    ["/register/company"
     {:name :register-company
      :get {:parameters
@@ -280,47 +277,44 @@
                                                   :email ::specs/email)}}
             :handler
             (fn [req]
-              (try
-                ;; TODO: use a transaction!!
-                (let [{:strs [email name org-name org-url invoicing-email updates-email]} (get req :form-params)
-                      ;; Check if user exists
-                      ;; Create member if they don't exist
-                      exists? (member-exists? db email)
-                      _ (when exists?
-                          ;; TODO: send them to login page
-                          ;; If they do, send them to the page to update membership details
-                          (throw (already-a-member-ex email)))
-                      invoicing-email (if (str/blank? invoicing-email) nil invoicing-email)
-                      updates-email (if (str/blank? updates-email) nil updates-email)
-                      customer (Customer/create {"email" email
-                                                 "name" org-name
-                                                 ;; TODO: work out how to set the invoicing email via API
-                                                 #_#_"invoicing" {"email_to" invoicing-email}})
-                      customer-id (.getId customer)
-                      member (->> {:insert-into :members
-                                   :values [{:email email
-                                             :person_name name
-                                             :member_type "company"
-                                             :stripe_customer_id customer-id
-                                             :organization_name org-name
-                                             :organization_url org-url
-                                             :invoicing-email invoicing-email
-                                             :updates-email updates-email
 
-                                             }]}
-                                  (sql/format)
-                                  (jdbc/execute! db))
+              ;; TODO: use a transaction!!
+              (let [{:strs [email name org-name org-url invoicing-email updates-email]} (get req :form-params)
+                    ;; Check if user exists
+                    ;; Create member if they don't exist
+                    exists? (member-exists? db email)
+                    _ (when exists?
+                        ;; TODO: send them to login page
+                        ;; If they do, send them to the page to update membership details
+                        (throw (already-a-member-ex email)))
+                    invoicing-email (if (str/blank? invoicing-email) nil invoicing-email)
+                    updates-email (if (str/blank? updates-email) nil updates-email)
+                    customer (Customer/create {"email" email
+                                               "name" org-name
+                                               ;; TODO: work out how to set the invoicing email via API
+                                               #_#_"invoicing" {"email_to" invoicing-email}})
+                    customer-id (.getId customer)
+                    member (->> {:insert-into :members
+                                 :values [{:email email
+                                           :person_name name
+                                           :member_type "company"
+                                           :stripe_customer_id customer-id
+                                           :organization_name org-name
+                                           :organization_url org-url
+                                           :invoicing-email invoicing-email
+                                           :updates-email updates-email
 
-                      ;; Create Checkout session
-                      plan-id (get-in req [:form-params "plan"])
-                      plan (retrieve-plan-memo plan-id)
-                      session (checkout-session customer-id plan)]
+                                           }]}
+                                (sql/format)
+                                (jdbc/execute! db))
 
-                  ;; Later:
-                  ;; Add them to Mailchimp
-                  ;; Add them to the website
-                  ;; Add to Google docs
-                  (checkout-response req session stripe))
-                (catch Exception e
-                  (prn e)
-                  (throw e))))}}]])
+                    ;; Create Checkout session
+                    plan-id (get-in req [:form-params "plan"])
+                    plan (retrieve-plan-memo plan-id)
+                    session (checkout-session customer-id plan)]
+
+                ;; Later:
+                ;; Add them to Mailchimp
+                ;; Add them to the website
+                ;; Add to Google docs
+                (checkout-response req session stripe)))}}]])

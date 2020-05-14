@@ -9,21 +9,19 @@
   ;; Lookup customer from event
   ;; Update subscription_plan, or set it to null
   ;; TODO: handle race conditions where new subscription is created and then old one is deleted
-  (try (let [object (get-in payload [:data :object])
-             customer-id (get object :customer)
-             _ (prn "customer" customer-id)
-             _ (prn object)
-             webhook-type (get payload :type)
-             plan-id (if (= webhook-type "customer.subscription.deleted")
-                       nil
-                       (get-in object [:plan :id]))]
-         (->> {:update :members
-               :set {:subscription_plan plan-id}
-               :where [:= :stripe_customer_id customer-id]}
-              (sql/format)
-              (jdbc/execute! db)))
-       (catch Exception e
-         (prn e))))
+  (let [object (get-in payload [:data :object])
+        customer-id (get object :customer)
+        _ (prn "customer" customer-id)
+        _ (prn object)
+        webhook-type (get payload :type)
+        plan-id (if (= webhook-type "customer.subscription.deleted")
+                  nil
+                  (get-in object [:plan :id]))]
+    (->> {:update :members
+          :set {:subscription_plan plan-id}
+          :where [:= :stripe_customer_id customer-id]}
+         (sql/format)
+         (jdbc/execute! db))))
 
 (defn stripe-webhook [db]
   (fn [req]
