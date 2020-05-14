@@ -8,3 +8,6 @@
                         route-name
                         (or path-params {}))
        (r/match->path (or query-params {})))))
+
+(defn login-path [req]
+  (route-name->path req :login))

@@ -2,7 +2,9 @@
   (:require [org.clojuriststogether.app.template :as template]
             [ring.util.http-response :as response]
             [ring.util.anti-forgery :as anti-forgery]
+            [org.clojuriststogether.app.utils :as utils]
             [org.clojuriststogether.app.spec :as specs]
+            [org.clojuriststogether.app.email :as email]
             [honeysql.core :as sql]
             [honeysql.helpers :as hh]
             [spec-tools.data-spec :as ds]
@@ -12,46 +14,51 @@
   (:import (com.stripe.model Plan Product Customer)
 
            com.stripe.model.checkout.Session
-           (com.stripe.exception InvalidRequestException)))
+           (com.stripe.exception InvalidRequestException)
+           (java.util UUID)
+           (java.time Instant)))
 
 (def sample-email "john@clojurelover.com")
+(def link-blue ["inline-block" "align-baseline" "font-bold" "text-blue-500" "hover:text-blue-800"])
 
-(def developer-member [:a.inline-block.align-baseline.font-bold.text-blue-500.hover:text-blue-800 {:href "https://www.clojuriststogether.org/developers/"} "Developer"])
-(def company-member [:a.inline-block.align-baseline.font-bold.text-blue-500.hover:text-blue-800 {:href "https://www.clojuriststogether.org/companies/"} "Company"])
+(def developer-member [:a {:class link-blue
+                           :href "https://www.clojuriststogether.org/developers/"} "Developer"])
+(def company-member [:a {:class link-blue
+                         :href "https://www.clojuriststogether.org/companies/"} "Company"])
 
 (defn login-page [req]
   (template/template req
-                     [:div.bg-white.rounded-t-lg.overflow-hidden.border-t.border-l.border-r.border-gray-400.p-4.px-3.py-10.bg-gray-200.flex.justify-center
-                      [:div.w-full.max-w-xs
-                       [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
-                        {:method "POST"}
-                        [:div.mb-4
-                         [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email"]
-                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                          {:type "email" :name "email" :placeholder sample-email :required true}]]
-                        (anti-forgery/anti-forgery-field)
-                        [:div.flex.items-center.justify-between
-                         [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign In"]
-                         #_[:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]
-                        [:p.mt-4.text-sm "Not a member yet? Sign up as a " developer-member " or " company-member " member."]
-                        ]
+    [:div.bg-white.rounded-t-lg.overflow-hidden.border-t.border-l.border-r.border-gray-400.p-4.px-3.py-10.bg-gray-200.flex.justify-center
+     [:div.w-full.max-w-xs
+      [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+       {:method "POST"}
+       [:div.mb-4
+        [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email"]
+        [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+         {:type "email" :name "email" :placeholder sample-email :required true}]]
+       (anti-forgery/anti-forgery-field)
+       [:div.flex.items-center.justify-between
+        [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign In"]
+        #_[:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]
+       [:p.mt-4.text-sm "Not a member yet? Sign up as a " developer-member " or " company-member " member."]
+       ]
 
-                       ]]))
+      ]]))
 
 (defn checkout-response [req session stripe]
   (-> (template/template req
-                         [:div [:h1 "Loading checkout"]
-                          [:script (format "var checkout = '%s'" (.getId session))]
-                          [:script
-                           ;; SECURITY TODO: do this more securely
-                           (format
-                             "var stripe = Stripe('%s');
+        [:div [:h1 "Loading checkout"]
+         [:script (format "var checkout = '%s'" (.getId session))]
+         [:script
+          ;; SECURITY TODO: do this more securely
+          (format
+            "var stripe = Stripe('%s');
 
-                                           stripe.redirectToCheckout({
-                                             sessionId: checkout}).then(function (result) {
-                                               // TODO: Handle errors
-                                             });"
-                             (:publishable-key stripe))]])
+                          stripe.redirectToCheckout({
+                            sessionId: checkout}).then(function (result) {
+                              // TODO: Handle errors
+                            });"
+            (:publishable-key stripe))]])
       (response/ok)
       (response/content-type "text/html")))
 
@@ -63,18 +70,28 @@
                                              ;; TODO: better URLs
                                              "cancel_url" "https://www.clojuriststogether.org/signup-success/"}))
 
-(defn self-serve-session [customer-id]
+(defn ^com.stripe.model.billingportal.Session self-serve-session [customer-id]
   (com.stripe.model.billingportal.Session/create
     {"customer" customer-id}))
 
-(defn member-exists? [db email]
-  (->> {:select [:email]
+(defn member-by-email [db email]
+  (->> {:select [:*]
         :from [:members]
         :where [:= :email email]}
        (sql/format)
        (jdbc/query db)
-       seq
-       boolean))
+       first))
+
+(defn member-exists? [db email]
+  (boolean (member-by-email db email)))
+
+(defn get-member [db id]
+  (->> {:select [:*]
+        :from [:members]
+        :where [:= :id id]}
+       (sql/format)
+       (jdbc/query db)
+       first))
 
 (defn retrieve-plan [plan-id]
   (try (Plan/retrieve plan-id)
@@ -94,12 +111,12 @@
   (try (Product/retrieve product-id)
        (catch InvalidRequestException e
          (throw (ex-info "Product not found" {:type :reitit.ring/response
-                                           :response {:status 422
-                                                      :body "<h1>Product not found</h1>"}})))))
+                                              :response {:status 422
+                                                         :body "<h1>Product not found</h1>"}})))))
 
 (def retrieve-product-memo (memoize retrieve-product))
 
-(defn auth-routes [stripe db]
+(defn auth-routes [stripe db email-service]
   [["/login" {:name :login
               :get {:handler (fn [req]
                                (-> (response/ok (login-page req))
@@ -108,24 +125,100 @@
                      :handler
                      (fn [req]
                        (let [email (get-in req [:form-params "email"])
-                             customer-id (->> {:select [:stripe_customer_id]
-                                               :from [:members]
-                                               :where [:= :email email]}
-                                              (sql/format)
-                                              (jdbc/query db)
-                                              first
-                                              :stripe_customer_id)]
-                         (-> (if customer-id
+                             member-id (:id (member-by-email db email))]
+                         (-> (if member-id
+                               (let [login-id (UUID/randomUUID)]
+                                 (->> {:insert-into :login_links
+                                       :values [{:id login-id
+                                                 :member_id member-id}]}
+                                      sql/format
+                                      (jdbc/execute! db))
+                                 (email/send email-service {:to "desk@danielcompton.net"
+                                                            :from "hi@clojuriststogether.org"
+                                                            :subject "Log in to Clojurists Together"
+                                                            :body (format "<p><a clicktracking=off href='%s'>Click here to log in</a>"
+                                                                          (str "https://members.clojuriststogether.org/magic?token=" login-id))
+                                                            :content-type "text/html"})
+                                 (template/template req
+                                   [:h1 "Login success"]
+                                   [:p "Check your email for a link to manage your subscription"]))
                                (template/template req
-                                                  [:h1 "Login success"]
-                                                  [:p "Check your email for a link to manage your subscription"]
-                                                  ;; TODO: send this in an email
-                                                  )
-                               (template/template req
-                                                  [:h1 "Login failed"]
-                                                  [:p "No membership for this email. Sign up for a " developer-member " or " company-member " membership"]))
+                                 [:h1 "Login failed"]
+                                 [:p "No membership for this email. Sign up for a " developer-member " or " company-member " membership"]))
                              (response/ok)
                              (response/content-type "text/html"))))}}]
+   ["/logout" {:name :logout
+               :post {:handler (fn [req]
+                                 (-> (response/found (utils/route-name->path req :home))
+                                     (assoc :session nil)))}}]
+   ["/magic" {:name :magic-link
+              :get {:parameters {:query {:token string?}}
+                    :handler (fn [req]
+
+                               (let [token (get-in req [:parameters :query :token])
+                                     token-uuid (try (UUID/fromString token) (catch IllegalArgumentException e nil))
+                                     now (Instant/now)
+                                     ;; TODO: store selector and verifier to prevent timing attacks?
+                                     login-link (when token-uuid
+                                                  ;; Don't even try to query if we can't parse the token
+                                                  (->> {:select [:member_id :created_at :expires_at]
+                                                        :from [:login_links]
+                                                        :where [:= :id token-uuid]}
+                                                       (sql/format)
+                                                       (jdbc/query db)
+                                                       first))]
+                                 ;; TODO: clean up old login links 24 hours after they expired
+                                 (cond
+                                   (and login-link (.isBefore now (:expires_at login-link)))
+                                   (do
+                                     (->> {:delete-from :login_links
+                                           :where [:= :id token-uuid]}
+                                          sql/format
+                                          (jdbc/execute! db))
+                                     (-> (response/found (utils/route-name->path req :manage))
+                                         (assoc-in [:session :member-id] (:member_id login-link))
+                                         ;; TODO: do we need to recreate the session here?
+                                         #_(update :session vary-meta assoc :recreate true)))
+
+                                   (and login-link (not (.isBefore now (:expires_at login-link))))
+                                   (-> (template/template req
+                                         [:h1 "Link expired"]
+                                         [:p "Your login link has expired. Please "
+                                          [:a {:href (utils/login-path req) :class link-blue} "login"] " again."])
+                                       (response/forbidden)
+                                       (response/content-type "text/html"))
+
+                                   :else
+                                   (-> (template/template req
+                                         [:h1 "Link not found"]
+                                         [:p "Couldn't find this login link. Please "
+                                          [:a {:href (utils/login-path req) :class link-blue} "login"] " again."])
+                                       (response/forbidden)
+                                       (response/content-type "text/html")))))}}]
+   ["/manage" {:name :manage
+               :get {:handler (fn [req]
+                                ;; TODO: proper authn/authz middleware
+                                (if-let [member (some->> (get-in req [:session :member-id])
+                                                         (get-member db))]
+                                  (-> (template/template req
+                                        [:h1 {:class "block text-xl"} "Manage your account (editing coming soon)"]
+                                        #_[:h2 (pr-str member)]
+                                        [:p "Email: " (:email member)]
+                                        [:p "Name: " (:person_name member)]
+                                        [:h2 {:class "block text-lg"} "Billing"]
+                                        [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
+                                         (anti-forgery/anti-forgery-field)
+                                         [:button {:class link-blue} "Manage billing details"]])
+                                      (response/ok)
+                                      (response/content-type "text/html"))
+                                  (response/found (utils/login-path req))))}}]
+   ["/manage/billing" {:name :manage-billing
+                       :post {:handler (fn [req]
+                                         (if-let [member-id (get-in req [:session :member-id])]
+                                           (let [customer-id (:stripe_customer_id (get-member db member-id))
+                                                 session (self-serve-session customer-id)]
+                                             (response/found (.getUrl session)))
+                                           (response/found (utils/login-path req))))}}]
    ["/register/developer"
     {:name :register-developer
      :get {:parameters {:query {:plan ::specs/plan-id}}
@@ -140,8 +233,13 @@
                                [:div.w-full.max-w-xs
                                 [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
                                  {:method "POST"}
+                                 ;; TODO: copy values from here into the Full Name form
                                  [:div.mb-4
-                                  [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Name"]
+                                  [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
+                                  [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                                   {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"}]]
+                                 [:div.mb-4
+                                  [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Full Name"]
                                   [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
                                    {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"}]]
                                  [:div.mb-4
@@ -168,10 +266,8 @@
                                 :email ::specs/email
                                 :plan ::specs/plan-id}}
             :handler (fn [req]
-
                        ;; TODO: use a transaction!!
-                       (let [
-                             {:strs [email name]} (get req :form-params)
+                       (let [{:strs [email name preferred-name]} (get req :form-params)
                              ;; Check if user exists
                              ;; Create member if they don't exist
                              exists? (member-exists? db email)
@@ -185,6 +281,7 @@
                              member (->> {:insert-into :members
                                           :values [{:email email
                                                     :person_name name
+                                                    :preferred_name preferred-name
                                                     :member_type "developer"
                                                     :stripe_customer_id customer-id}]}
                                          (sql/format)
@@ -218,6 +315,10 @@
                         [:div.mb-2
                          [:span.block.text-gray-700.text-md.font-bold.mb-2
                           "Primary Contact Details"]]
+                        [:div.mb-4
+                         [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
+                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                          {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"}]]
                         [:div.mb-4
                          [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Name"]
                          [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
@@ -277,9 +378,9 @@
                                                   :email ::specs/email)}}
             :handler
             (fn [req]
-
               ;; TODO: use a transaction!!
-              (let [{:strs [email name org-name org-url invoicing-email updates-email]} (get req :form-params)
+              (let [{:strs [email name org-name org-url invoicing-email updates-email preferred-name]}
+                    (get req :form-params)
                     ;; Check if user exists
                     ;; Create member if they don't exist
                     exists? (member-exists? db email)
@@ -296,6 +397,7 @@
                     customer-id (.getId customer)
                     member (->> {:insert-into :members
                                  :values [{:email email
+                                           :preferred_name preferred-name
                                            :person_name name
                                            :member_type "company"
                                            :stripe_customer_id customer-id

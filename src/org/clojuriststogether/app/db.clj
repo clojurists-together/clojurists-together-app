@@ -1,8 +1,33 @@
 (ns org.clojuriststogether.app.db
   (:require [integrant.core :as ig]
             [hikari-cp.core :as hikari]
+            [cheshire.core :as json]
             [ragtime.jdbc]
-            [ragtime.repl]))
+            [ragtime.repl]
+            [clojure.java.jdbc :as jdbc])
+  (:import (java.sql Timestamp PreparedStatement)
+           (org.postgresql.util PGobject)
+           (java.time Instant)))
+
+(extend-protocol jdbc/IResultSetReadColumn
+  Timestamp
+  (result-set-read-column [v _ _]
+    (.toInstant v))
+
+  PGobject
+  (result-set-read-column [pgobj _metadata _index]
+    (let [type (.getType pgobj)
+          value (.getValue pgobj)]
+      (case type
+        "json" (json/parse-string value true)
+        "jsonb" (json/parse-string value true)
+        "citext" (str value)
+        value))))
+
+(extend-type Instant
+  jdbc/ISQLParameter
+  (set-parameter [v ^PreparedStatement stmt idx]
+    (.setTimestamp stmt idx (Timestamp/from v))))
 
 (defmethod ig/init-key ::hikari-cp
   [_ {:keys [jdbc-url]}]

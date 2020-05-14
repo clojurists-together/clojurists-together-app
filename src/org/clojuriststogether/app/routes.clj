@@ -28,7 +28,7 @@
 (defmethod ig/resume-key :app/session-store [k v old-val old-impl]
   old-impl)
 
-(defmethod ig/init-key :app/handler [_ {:keys [stripe db store profile]}]
+(defmethod ig/init-key :app/handler [_ {:keys [stripe db store profile email-service]}]
   (let [routes [["" {:middleware [
                                   :parameters
                                   :format-negotiate
@@ -40,12 +40,12 @@
                                   :coerce-response
                                   :coerce-request
                                   :multipart
-                                  [:ring-session {:store store}]
-                                  :csrf
                                   [:defaults {:cookies true
                                               :session {:flash true
+                                                        :store store
                                                         :cookie-attrs {:http-only true, :same-site :strict}}
-                                              :security {:xss-protection {:enable? true, :mode :block}
+                                              :security {:anti-forgery true
+                                                         :xss-protection {:enable? true, :mode :block}
                                                          :frame-options :sameorigin
                                                          :content-type-options :nosniff}
                                               :static {:resources "public"}
@@ -53,8 +53,9 @@
                                                           :absolute-redirects true
                                                           :content-types true
                                                           :default-charset "utf-8"}}]]}
-                 ["/" {:get {:handler (fn [req] (response/found (utils/route-name->path req :login)))}}]
-                 (pages.auth/auth-routes stripe db)]
+                 ["/" {:name :home
+                       :get {:handler (fn [req] (response/found (utils/login-path req)))}}]
+                 (pages.auth/auth-routes stripe db email-service)]
                 ;; TODO: middleware for Stripe
                 ["" {:middleware [:exception
                                   [:sentry nil {:error-fn (fn [req e] (throw e))}]
@@ -88,11 +89,6 @@
                                                :coerce-request coercion/coerce-request-middleware
                                                ;; multipart
                                                :multipart multipart/multipart-middleware
-                                               ;; ring-session
-                                               :ring-session {:name ::session
-                                                              :wrap ring.middleware.session/wrap-session}
-                                               :csrf {:name ::csrf
-                                                      :wrap ring.middleware.anti-forgery/wrap-anti-forgery}
                                                ;; defaults
                                                :defaults {:name ::defaults
                                                           :wrap defaults/wrap-defaults}

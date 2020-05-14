@@ -4,8 +4,11 @@
  :app/handler {:stripe #ig/ref :org.clojuriststogether.app.stripe/stripe
                :db #ig/ref :org.clojuriststogether.app.db/hikari-cp
                :store #ig/ref :app/session-store
-               :profile #profile{:dev :dev
-                                 :prod :prod}}
+               :email-service #ig/ref :org.clojuriststogether.app.email/email-service
+    :profile #profile{:dev :dev
+                      :prod :prod}}
+ #profile{:dev :org.clojuriststogether.app.email/logging
+          :prod :org.clojuriststogether.app.email/sendgrid} {:api-key #env "SENDGRID_API_KEY"}
  :app/session-store nil
  :org.clojuriststogether.app.db/hikari-cp {:jdbc-url #or [#env "JDBC_DATABASE_URL" "jdbc:postgresql:clojurists_together_dev"]}
  :org.clojuriststogether.app.stripe/stripe {:publishable-key #env "STRIPE_PUBLISHABLE_KEY"

@@ -1,8 +1,10 @@
 (ns org.clojuriststogether.app.template
   (:require [hiccup.core :as hiccup]
-            [org.clojuriststogether.app.utils :as utils]))
+            [org.clojuriststogether.app.utils :as utils]
+            [ring.util.anti-forgery :as anti-forgery]))
 
 (defn template [req & body]
+  ;; TODO: hiccup2
   (hiccup/html
     [:head
      [:title "Clojurists Together Members"]
@@ -12,7 +14,7 @@
      [:nav.bg-white.shadow {:role "navigation"}
       [:div.container.mx-auto.p-4.flex.flex-wrap.items-center.md:flex-no-wrap
        [:div.mr-4.md:mr-8
-        [:a {:href "/" :rel "home"}
+        [:a {:href (utils/route-name->path req :home) :rel "home"}
          "Clojurists Together"
          ;; Put our logo here
          #_[:svg.w-10.h-10.text-purple-600 {:width "54" :height "54" :viewBox "0 0 54 54" :xmlns "http://www.w3.org/2000/svg"}
@@ -32,8 +34,14 @@
            [:li
             [:a.block.px-4.py-1.md:p-2.lg:px-4 {:href "#" :title "Link"} "Link"]]]
         [:ul.flex.flex-col.mt-4.-mx-4.pt-4.border-t.md:flex-row.md:items-center.md:mx-0.md:ml-auto.md:mt-0.md:pt-0.md:border-0
-         [:li
-          [:a.block.px-4.py-1.md:p-2.lg:px-4 {:href (utils/route-name->path req :login) :title "Login"} "Login"]]
+         (if (get-in req [:session :member-id])
+           [:li
+            [:form {:method "POST" :action (utils/route-name->path req :logout)
+                    :style "margin-block-end: 0;"}
+             (anti-forgery/anti-forgery-field)
+             [:button.block.px-4.py-1.md:p-2.lg:px-4 "Logout"]]]
+           [:li
+            [:a.block.px-4.py-1.md:p-2.lg:px-4 {:href (utils/login-path req) :title "Login"} "Login"]])
          #_[:li
             [:a.block.px-4.py-1.md:p-2.lg:px-4.text-purple-600 {:href (utils/route-name->path req :sign-up)} "Sign Up"]]]]]]
      body]))
