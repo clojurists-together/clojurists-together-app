@@ -28,7 +28,7 @@
 (defmethod ig/resume-key :app/session-store [k v old-val old-impl]
   old-impl)
 
-(defmethod ig/init-key :app/handler [_ {:keys [stripe db store]}]
+(defmethod ig/init-key :app/handler [_ {:keys [stripe db store profile]}]
   (let [routes [["" {:middleware [
                                   :parameters
                                   :format-negotiate
@@ -64,7 +64,9 @@
         router (ring/router
                  routes
                  ;; TODO: disable diffs in prod
-                 {:reitit.middleware/transform dev/print-request-diffs ;; pretty diffs
+                 {:reitit.middleware/transform (if (= :dev profile)
+                                                 dev/print-request-diffs
+                                                 identity)
                   :validate spec/validate                   ;; enable spec validation for route data
                   :reitit.middleware/registry {
                                                ;; query-params & form-params

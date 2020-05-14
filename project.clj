@@ -18,6 +18,12 @@
                  [honeysql "0.9.10"]
                  [io.sentry/sentry-clj "0.7.2"]
                  [jdbc-ring-session "1.2"]
+                 ;; Logging
+                 [org.slf4j/jcl-over-slf4j "1.7.25"]
+                 [org.slf4j/jul-to-slf4j "1.7.25"]
+                 [org.slf4j/log4j-over-slf4j "1.7.25"]
+                 [ch.qos.logback/logback-classic "1.2.3"
+                  :exclusions [org.slf4j/slf4j-api]]
                  [hikari-cp "2.11.0"]]
   :min-lein-version "2.7.1"
   :main org.clojuriststogether.app.main
