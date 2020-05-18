@@ -2,6 +2,7 @@
   (:require [ring.adapter.jetty :as jetty]
             [integrant.core :as ig]
             [org.clojuriststogether.app.routes]
+            [org.clojuriststogether.app.sessions]
             [aero.core :as aero]
             [clojure.java.io :as io]))
 
