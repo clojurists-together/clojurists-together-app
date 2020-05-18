@@ -12,6 +12,10 @@ FIXME: explanation
 
     $ java -jar app-clojuriststogether-0.1.0-standalone.jar [args]
 
+```
+heroku labs:enable runtime-dyno-metadata -a <app name>
+```
+
 ## Options
 
 FIXME: listing of options this app accepts.
