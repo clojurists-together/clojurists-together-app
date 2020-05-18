@@ -20,6 +20,7 @@
                  [clj-http "3.10.0"]
                  [jdbc-ring-session "1.2"]
                  ;; Logging
+                 [org.clojure/tools.logging "1.1.0"]
                  [org.slf4j/jcl-over-slf4j "1.7.25"]
                  [org.slf4j/jul-to-slf4j "1.7.25"]
                  [org.slf4j/log4j-over-slf4j "1.7.25"]

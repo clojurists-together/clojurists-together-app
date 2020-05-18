@@ -5,16 +5,16 @@
             [org.clojuriststogether.app.utils :as utils]
             [org.clojuriststogether.app.pages.auth :as pages.auth]
             [org.clojuriststogether.app.webhooks :as webhooks]
-            [ring.middleware.session.memory :as memory-session]
+            [org.clojuriststogether.app.middleware :as app.middleware]
             [sentry-clj.ring]
             [reitit.ring.middleware.muuntaja :as muuntaja]
-            [reitit.ring.middleware.exception :as exception]
+
             [reitit.ring.middleware.dev :as dev]
             [reitit.ring.middleware.multipart :as multipart]
             [ring.middleware.anti-forgery]
             [reitit.ring.middleware.parameters :as parameters]
             [reitit.ring.coercion :as coercion]
-            [reitit.ring.middleware.exception]
+
             [reitit.dev.pretty :as pretty]
             [reitit.coercion.spec]
             [reitit.ring.spec :as spec]
@@ -51,9 +51,7 @@
                                   :parameters
                                   :format-negotiate
                                   :format-response
-                                  ;; TODO: better exception filtering
                                   :exception
-                                  [:sentry nil {:error-fn (fn [req e] (throw e))}]
                                   :format-request
                                   :coerce-response
                                   :coerce-request
@@ -64,7 +62,6 @@
                  (pages.auth/auth-routes stripe db email-service)]
                 ;; TODO: middleware for Stripe
                 ["" {:middleware [:exception
-                                  [:sentry nil {:error-fn (fn [req e] (throw e))}]
                                   :format-response
                                   :coerce-response]}
                  (webhooks/stripe-webhook db)]]
@@ -83,10 +80,7 @@
                                                ;; encoding response body
                                                :format-response muuntaja/format-response-middleware
                                                ;; exception handling
-                                               :exception exception/exception-middleware
-                                               ;; Sentry exception handling
-                                               :sentry {:name ::sentry
-                                                        :wrap sentry-clj.ring/wrap-report-exceptions}
+                                               :exception (app.middleware/exception)
                                                ;; decoding request body
                                                :format-request muuntaja/format-request-middleware
                                                ;; coercing response body
