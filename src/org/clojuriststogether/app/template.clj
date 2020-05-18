@@ -44,4 +44,7 @@
             [:a.block.px-4.py-1.md:p-2.lg:px-4 {:href (utils/login-path req) :title "Login"} "Login"]])
          #_[:li
             [:a.block.px-4.py-1.md:p-2.lg:px-4.text-purple-600 {:href (utils/route-name->path req :sign-up)} "Sign Up"]]]]]]
-     body]))
+     [:div.bg-white.rounded-t-lg.overflow-hidden.border-t.border-l.border-r.border-gray-400.p-4.px-3.py-10.bg-gray-200.flex.justify-center
+      [:div.w-full.max-w-xs
+       body]]
+     ]))

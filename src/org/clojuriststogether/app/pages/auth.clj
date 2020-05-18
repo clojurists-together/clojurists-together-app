@@ -28,22 +28,20 @@
 
 (defn login-page [req]
   (template/template req
-    [:div.bg-white.rounded-t-lg.overflow-hidden.border-t.border-l.border-r.border-gray-400.p-4.px-3.py-10.bg-gray-200.flex.justify-center
-     [:div.w-full.max-w-xs
-      [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
-       {:method "POST"}
-       [:div.mb-4
-        [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email"]
-        [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-         {:type "email" :name "email" :placeholder sample-email :required true}]]
-       (anti-forgery/anti-forgery-field)
-       [:div.flex.items-center.justify-between
-        [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign In"]
-        #_[:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]
-       [:p.mt-4.text-sm "Not a member yet? Sign up as a " developer-member " or " company-member " member."]
-       ]
+    [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+     {:method "POST"}
+     [:div.mb-4
+      [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email"]
+      [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+       {:type "email" :name "email" :placeholder sample-email :required true}]]
+     (anti-forgery/anti-forgery-field)
+     [:div.flex.items-center.justify-between
+      [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign In"]
+      #_[:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]
+     [:p.mt-4.text-sm "Not a member yet? Sign up as a " developer-member " or " company-member " member."]
+     ]
 
-      ]]))
+    ))
 
 (defn checkout-response [req session stripe]
   (-> (template/template req
@@ -201,11 +199,11 @@
                                 (if-let [member (some->> (get-in req [:session :member-id])
                                                          (get-member db))]
                                   (-> (template/template req
-                                        [:h1 {:class "block text-xl"} "Manage your account (editing coming soon)"]
+                                        [:h1 {:class "block text-xl mb-2"} "Manage your account"]
                                         #_[:h2 (pr-str member)]
                                         [:p "Email: " (:email member)]
                                         [:p "Name: " (:person_name member)]
-                                        [:h2 {:class "block text-lg"} "Billing"]
+                                        [:h2 {:class "block text-lg mb-2 mt-4"} "Billing"]
                                         [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
                                          (anti-forgery/anti-forgery-field)
                                          [:button {:class link-blue} "Manage billing details"]])
@@ -229,37 +227,35 @@
                             product (retrieve-product-memo (.getProduct plan))]
                         (-> (template/template
                               req
-                              [:div.bg-white.rounded-t-lg.overflow-hidden.border-t.border-l.border-r.border-gray-400.p-4.px-3.py-10.bg-gray-200.flex.justify-center
-                               [:div.w-full.max-w-xs
-                                [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
-                                 {:method "POST"}
-                                 ;; TODO: copy values from here into the Full Name form
-                                 [:div.mb-4
-                                  [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
-                                  [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                                   {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"}]]
-                                 [:div.mb-4
-                                  [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Full Name"]
-                                  [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                                   {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"}]]
-                                 [:div.mb-4
-                                  [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email Address"]
-                                  [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                                   {:name "email" :type "email" :placeholder sample-email :required true}]]
-                                 [:input {:type "hidden" :name "plan" :value plan-id}]
-                                 (anti-forgery/anti-forgery-field)
-                                 [:div.mb-4
-                                  [:span.block.text-gray-700.text-sm.font-bold.mb-2 "Plan"]
-                                  [:p (.getName product) " - " (.getNickname plan)]
-                                  [:p (/ (.getAmountDecimal plan) 100) " " (str/upper-case (.getCurrency plan))
-                                   " every " (.getInterval plan)]
-                                  ;[:p "Plan " plan]
-                                  ;[:p "Product " product]
-                                  ]
-                                 [:div.mb-4
-                                  [:p "You'll enter your card details on the next screen"]]
-                                 [:div.flex.items-center.justify-between
-                                  [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]]]])
+                              [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+                               {:method "POST"}
+                               ;; TODO: copy values from here into the Full Name form
+                               [:div.mb-4
+                                [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
+                                [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                                 {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"}]]
+                               [:div.mb-4
+                                [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Full Name"]
+                                [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                                 {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"}]]
+                               [:div.mb-4
+                                [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email Address"]
+                                [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                                 {:name "email" :type "email" :placeholder sample-email :required true}]]
+                               [:input {:type "hidden" :name "plan" :value plan-id}]
+                               (anti-forgery/anti-forgery-field)
+                               [:div.mb-4
+                                [:span.block.text-gray-700.text-sm.font-bold.mb-2 "Plan"]
+                                [:p (.getName product) " - " (.getNickname plan)]
+                                [:p (/ (.getAmountDecimal plan) 100) " " (str/upper-case (.getCurrency plan))
+                                 " every " (.getInterval plan)]
+                                ;[:p "Plan " plan]
+                                ;[:p "Product " product]
+                                ]
+                               [:div.mb-4
+                                [:p "You'll enter your card details on the next screen"]]
+                               [:div.flex.items-center.justify-between
+                                [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]])
                             (response/ok)
                             (response/content-type "text/html"))))}
      :post {:parameters {:form {:name string?
@@ -308,62 +304,60 @@
                    product (retrieve-product-memo (.getProduct plan))]
                (-> (template/template
                      req
-                     [:div.bg-white.rounded-t-lg.overflow-hidden.border-t.border-l.border-r.border-gray-400.p-4.px-3.py-10.bg-gray-200.flex.justify-center
-                      [:div.w-full.max-w-sm
-                       [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
-                        {:method "POST"}
-                        [:div.mb-2
-                         [:span.block.text-gray-700.text-md.font-bold.mb-2
-                          "Primary Contact Details"]]
-                        [:div.mb-4
-                         [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
-                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                          {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"}]]
-                        [:div.mb-4
-                         [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Name"]
-                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                          {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"}]]
-                        [:div.mb-4
-                         [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email Address"]
-                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                          {:name "email" :type "email" :placeholder "john@acme.com" :required true}]]
-                        [:div.mb-2
-                         [:span.block.text-gray-700.text-md.font-bold.mb-2
-                          "Organization Details"]]
-                        [:div.mb-4
-                         [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-name"} "Organization Name"]
-                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                          {:name "org-name" :type "text" :placeholder "Acme" :autocomplete "organization" :required true}]]
-                        [:div.mb-4
-                         [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-url"} "URL"]
-                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                          {:name "org-url" :type "url" :placeholder "https://www.acme.com" :required true}]]
-                        [:div.mb-4
-                         [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "invoicing-email"} "Invoicing Email"
-                          [:span.text-gray-600.text-sm.ml-2 "Optional"]]
-                         [:p.text-gray-700.text-sm "Email to send invoices to. If not provided, will be sent to the primary contact."]
-                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                          {:name "invoicing-email" :type "email" :placeholder "accounts@acme.com"}]]
-                        [:div.mb-4
-                         [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "updates-email"} "News and Surveys email"
-                          [:span.text-gray-600.text-sm.ml-2 "Optional"]]
-                         [:p.text-gray-700.text-sm "Email to send news updates and surveys to. If not provided, will be sent to the primary contact."]
-                         [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                          {:name "updates-email" :type "email" :placeholder "dev-team@acme.com"}]]
-                        [:input {:type "hidden" :name "plan" :value plan-id}]
-                        (anti-forgery/anti-forgery-field)
-                        [:div.mb-4
-                         [:span.block.text-gray-700.text-sm.font-bold.mb-2 "Plan"]
-                         [:p (.getName product) " - " (.getNickname plan)]
-                         [:p (/ (.getAmountDecimal plan) 100) " " (str/upper-case (.getCurrency plan))
-                          " every " (.getInterval plan)]
-                         ;[:p "Plan " plan]
-                         ;[:p "Product " product]
-                         ]
-                        [:div.mb-4
-                         [:p "You'll enter your card details on the next screen"]]
-                        [:div.flex.items-center.justify-between
-                         [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]]]])
+                     [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+                      {:method "POST"}
+                      [:div.mb-2
+                       [:span.block.text-gray-700.text-md.font-bold.mb-2
+                        "Primary Contact Details"]]
+                      [:div.mb-4
+                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
+                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                        {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"}]]
+                      [:div.mb-4
+                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Name"]
+                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                        {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"}]]
+                      [:div.mb-4
+                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email Address"]
+                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                        {:name "email" :type "email" :placeholder "john@acme.com" :required true}]]
+                      [:div.mb-2
+                       [:span.block.text-gray-700.text-md.font-bold.mb-2
+                        "Organization Details"]]
+                      [:div.mb-4
+                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-name"} "Organization Name"]
+                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                        {:name "org-name" :type "text" :placeholder "Acme" :autocomplete "organization" :required true}]]
+                      [:div.mb-4
+                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-url"} "URL"]
+                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                        {:name "org-url" :type "url" :placeholder "https://www.acme.com" :required true}]]
+                      [:div.mb-4
+                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "invoicing-email"} "Invoicing Email"
+                        [:span.text-gray-600.text-sm.ml-2 "Optional"]]
+                       [:p.text-gray-700.text-sm "Email to send invoices to. If not provided, will be sent to the primary contact."]
+                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                        {:name "invoicing-email" :type "email" :placeholder "accounts@acme.com"}]]
+                      [:div.mb-4
+                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "updates-email"} "News and Surveys email"
+                        [:span.text-gray-600.text-sm.ml-2 "Optional"]]
+                       [:p.text-gray-700.text-sm "Email to send news updates and surveys to. If not provided, will be sent to the primary contact."]
+                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                        {:name "updates-email" :type "email" :placeholder "dev-team@acme.com"}]]
+                      [:input {:type "hidden" :name "plan" :value plan-id}]
+                      (anti-forgery/anti-forgery-field)
+                      [:div.mb-4
+                       [:span.block.text-gray-700.text-sm.font-bold.mb-2 "Plan"]
+                       [:p (.getName product) " - " (.getNickname plan)]
+                       [:p (/ (.getAmountDecimal plan) 100) " " (str/upper-case (.getCurrency plan))
+                        " every " (.getInterval plan)]
+                       ;[:p "Plan " plan]
+                       ;[:p "Product " product]
+                       ]
+                      [:div.mb-4
+                       [:p "You'll enter your card details on the next screen"]]
+                      [:div.flex.items-center.justify-between
+                       [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]])
                    (response/ok)
                    (response/content-type "text/html"))))}
      :post {:parameters
