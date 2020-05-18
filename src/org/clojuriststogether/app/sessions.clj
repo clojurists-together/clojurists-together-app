@@ -4,6 +4,9 @@
             [ring.middleware.session.memory :as memory-session]
             [ring.middleware.session.cookie :as cookie-session]))
 
+(defn member-id [req]
+  (get-in req [:session :member-id]))
+
 (defmethod ig/init-key :app/memory-session-store [_ _]
   (memory-session/memory-store))
 

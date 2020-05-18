@@ -10,6 +10,7 @@
             [spec-tools.data-spec :as ds]
             [clojure.string :as str]
             [clojure.java.jdbc :as jdbc]
+            [org.clojuriststogether.app.sessions :as sessions]
             [clojure.spec.alpha :as s])
   (:import (com.stripe.model Plan Product Customer)
 
@@ -114,9 +115,18 @@
 
 (def retrieve-product-memo (memoize retrieve-product))
 
+(defn unauthenticated!
+  "This is an ugly hack until I have middleware to redirect logged in users to manage page."
+  [req]
+  (when (sessions/member-id req)
+    (response/throw! {:status 302
+                      :headers {"Location" (utils/route-name->path req :manage)}
+                      :body ""})))
+
 (defn auth-routes [stripe db email-service]
   [["/login" {:name :login
               :get {:handler (fn [req]
+                               (unauthenticated! req)
                                (-> (response/ok (login-page req))
                                    (response/content-type "text/html")))}
               :post {:parameters {:form {:email ::specs/email}}
@@ -152,7 +162,6 @@
    ["/magic" {:name :magic-link
               :get {:parameters {:query {:token string?}}
                     :handler (fn [req]
-
                                (let [token (get-in req [:parameters :query :token])
                                      token-uuid (try (UUID/fromString token) (catch IllegalArgumentException e nil))
                                      now (Instant/now)
@@ -196,7 +205,7 @@
    ["/manage" {:name :manage
                :get {:handler (fn [req]
                                 ;; TODO: proper authn/authz middleware
-                                (if-let [member (some->> (get-in req [:session :member-id])
+                                (if-let [member (some->> (sessions/member-id req)
                                                          (get-member db))]
                                   (-> (template/template req
                                         [:h1 {:class "block text-xl mb-2"} "Manage your account"]
@@ -212,7 +221,7 @@
                                   (response/found (utils/login-path req))))}}]
    ["/manage/billing" {:name :manage-billing
                        :post {:handler (fn [req]
-                                         (if-let [member-id (get-in req [:session :member-id])]
+                                         (if-let [member-id (sessions/member-id req)]
                                            (let [customer-id (:stripe_customer_id (get-member db member-id))
                                                  session (self-serve-session customer-id)]
                                              (response/found (.getUrl session)))
@@ -222,6 +231,7 @@
      :get {:parameters {:query {:plan ::specs/plan-id}}
            :handler (fn [req]
                       ;; TODO: use :parameters
+                      (unauthenticated! req)
                       (let [plan-id (get-in req [:query-params "plan"])
                             plan (retrieve-plan-memo plan-id)
                             product (retrieve-product-memo (.getProduct plan))]
@@ -279,7 +289,8 @@
                                                     :person_name name
                                                     :preferred_name preferred-name
                                                     :member_type "developer"
-                                                    :stripe_customer_id customer-id}]}
+                                                    :stripe_customer_id customer-id}]
+                                          :returning [:id]}
                                          (sql/format)
                                          (jdbc/execute! db))
 
@@ -292,13 +303,15 @@
                          ;; Add them to Mailchimp
                          ;; Add them to the website
                          ;; Add to Google docs
-                         (checkout-response req session stripe)))}}]
+                         (-> (checkout-response req session stripe)
+                             (assoc-in [:session :member-id] (first member)))))}}]
    ["/register/company"
     {:name :register-company
      :get {:parameters
            {:query {:plan ::specs/plan-id}}
            :handler
            (fn [req]
+             (unauthenticated! req)
              (let [plan-id (get-in req [:query-params "plan"])
                    plan (retrieve-plan-memo plan-id)
                    product (retrieve-product-memo (.getProduct plan))]
@@ -398,9 +411,8 @@
                                            :organization_name org-name
                                            :organization_url org-url
                                            :invoicing-email invoicing-email
-                                           :updates-email updates-email
-
-                                           }]}
+                                           :updates-email updates-email}]
+                                 :returning [:id]}
                                 (sql/format)
                                 (jdbc/execute! db))
 
@@ -413,4 +425,5 @@
                 ;; Add them to Mailchimp
                 ;; Add them to the website
                 ;; Add to Google docs
-                (checkout-response req session stripe)))}}]])
+                (-> (checkout-response req session stripe)
+                    (assoc-in [:session :member-id] (first member)))))}}]])
