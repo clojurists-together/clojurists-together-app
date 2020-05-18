@@ -42,7 +42,8 @@
         (assoc-in [:session :cookie-attrs :secure] true)
         (assoc-in [:session :cookie-name] "secure-ring-session")
         (assoc-in [:security :ssl-redirect] true)
-        (assoc-in [:security :hsts] true))
+        (assoc-in [:security :hsts] true)
+        (assoc :proxy true))
     (defaults store)))
 
 (defmethod ig/init-key :app/handler [_ {:keys [stripe db store profile email-service]}]
