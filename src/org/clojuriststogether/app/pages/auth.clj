@@ -209,10 +209,31 @@
                                                          (get-member db))]
                                   (-> (template/template req
                                         [:h1 {:class "block text-xl mb-2"} "Manage your account"]
-                                        #_[:h2 (pr-str member)]
                                         [:p "Email: " (:email member)]
-                                        [:p "Name: " (:person_name member)]
+                                        [:p "Preferred Name: " (:preferred_name member)]
+                                        [:p "Full Name: " (:person_name member)]
+
+                                        (when (= "company" (:member_type member))
+                                          (list
+                                            [:h2 {:class "block text-lg mb-2 mt-4"} "Company details"]
+                                            [:p "Company Name: " (:organization_name member)]
+                                            [:p "Company URL: " [:a {:class link-blue :href (:organization_url member)} (:organization_url member)]]
+                                            [:h2 {:class "block text-lg mb-2 mt-4"} "Contact details"]
+                                            [:p "Invoicing email: " (:invoicing-email member "not provided")]
+                                            [:p "Updates email: " (:updates-email member "not provided")]))
+
+
+
+
                                         [:h2 {:class "block text-lg mb-2 mt-4"} "Billing"]
+                                        #_(let [plan (some-> (:subscription_plan member)
+                                                           (retrieve-plan-memo)
+                                                           (get "product")
+                                                           (retrieve-product-memo)
+                                                           )]
+                                          [:p "Current Plan: " (or plan
+                                                                   "no plan")])
+
                                         [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
                                          (anti-forgery/anti-forgery-field)
                                          [:button {:class link-blue} "Manage billing details"]])
