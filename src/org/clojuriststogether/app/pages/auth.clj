@@ -141,7 +141,7 @@
                                                  :member_id member-id}]}
                                       sql/format
                                       (jdbc/execute! db))
-                                 (email/send email-service {:to "desk@danielcompton.net"
+                                 (email/send email-service {:to email
                                                             :from "hi@clojuriststogether.org"
                                                             :subject "Log in to Clojurists Together"
                                                             :body (format "<p><a clicktracking=off href='%s'>Click here to log in</a>"
