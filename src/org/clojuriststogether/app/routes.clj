@@ -21,12 +21,7 @@
             [integrant.core :as ig]
             [muuntaja.core :as m]))
 
-(defmethod ig/init-key :app/session-store [_ _]
-  (memory-session/memory-store))
 
-(defmethod ig/suspend-key! :app/session-store [_ _])
-(defmethod ig/resume-key :app/session-store [k v old-val old-impl]
-  old-impl)
 
 (defmethod ig/init-key :app/handler [_ {:keys [stripe db store profile email-service]}]
   (let [routes [["" {:middleware [

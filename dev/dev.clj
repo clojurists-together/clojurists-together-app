@@ -1,7 +1,6 @@
 (ns dev
   (:require
     [integrant.repl :as ig-repl]
-    [org.clojuriststogether.app.server]
     [ragtime.repl :as repl]
     [org.clojuriststogether.app.server :as server]
     [org.clojuriststogether.app.admin.migrate :as migrate]))
