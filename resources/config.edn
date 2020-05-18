@@ -10,6 +10,7 @@
  #profile{:dev :org.clojuriststogether.app.email/logging
           :prod :org.clojuriststogether.app.email/sendgrid} {:api-key #env "SENDGRID_API_KEY"}
  :app/cookie-session-store {:key #env "SESSION_COOKIE_KEY"}
- :org.clojuriststogether.app.db/hikari-cp {:jdbc-url #or [#env "JDBC_DATABASE_URL" "jdbc:postgresql:clojurists_together_dev"]}
+ :org.clojuriststogether.app.db/hikari-cp {:jdbc-url #or [#env "JDBC_DATABASE_URL" "jdbc:postgresql:clojurists_together_dev"]
+                                           :maximum-pool-size 5}
  :org.clojuriststogether.app.stripe/stripe {:publishable-key #env "STRIPE_PUBLISHABLE_KEY"
                                             :secret-key #env "STRIPE_SECRET_KEY"}}
