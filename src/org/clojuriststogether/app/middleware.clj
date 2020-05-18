@@ -2,6 +2,7 @@
   (:require [reitit.ring.middleware.exception :as exception]
             [reitit.coercion :as coercion]
             [sentry-clj.ring :as sentry.ring]
+            [ring.util.http-response :as http-response]
             [clojure.tools.logging :as log]
             [sentry-clj.core :as sentry]))
 
@@ -32,9 +33,10 @@
 
 (defn default-handlers
   []
-  {::exception/default default-unhandled-exception
-   ::coercion/reponse-coercion (create-coercion-handler 500)
-   ::exception/wrap wrap-log-error})
+  (merge exception/default-handlers
+         {::exception/default default-unhandled-exception
+          ::coercion/reponse-coercion (create-coercion-handler 500)
+          ::exception/wrap wrap-log-error}))
 
 (defn exception []
   (exception/create-exception-middleware (default-handlers)))
