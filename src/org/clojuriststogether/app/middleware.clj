@@ -5,7 +5,7 @@
             [clojure.tools.logging :as log]
             [sentry-clj.core :as sentry]))
 
-(def version (delay (System/getenv "HEROKU_RELEASE_VERSION")))
+(def version (delay (System/getenv "HEROKU_SLUG_COMMIT")))
 
 (defn report-to-sentry [e req]
   (-> (sentry.ring/request->event req e)
