@@ -21,7 +21,29 @@
             [integrant.core :as ig]
             [muuntaja.core :as m]))
 
+(defn defaults [store]
+  {:cookies true
+   :session {:flash true
+             :store store
+             :cookie-attrs {:http-only true, :same-site :strict}}
+   :security {:anti-forgery true
+              :xss-protection {:enable? true, :mode :block}
+              :frame-options :sameorigin
+              :content-type-options :nosniff}
+   :static {:resources "public"}
+   :responses {:not-modified-responses true
+               :absolute-redirects true
+               :content-types true
+               :default-charset "utf-8"}})
 
+(defn get-defaults [profile store]
+  (if (= :prod profile)
+    (-> (defaults store)
+        (assoc-in [:session :cookie-attrs :secure] true)
+        (assoc-in [:session :cookie-name] "secure-ring-session")
+        (assoc-in [:security :ssl-redirect] true)
+        (assoc-in [:security :hsts] true))
+    (defaults store)))
 
 (defmethod ig/init-key :app/handler [_ {:keys [stripe db store profile email-service]}]
   (let [routes [["" {:middleware [
@@ -35,19 +57,7 @@
                                   :coerce-response
                                   :coerce-request
                                   :multipart
-                                  [:defaults {:cookies true
-                                              :session {:flash true
-                                                        :store store
-                                                        :cookie-attrs {:http-only true, :same-site :strict}}
-                                              :security {:anti-forgery true
-                                                         :xss-protection {:enable? true, :mode :block}
-                                                         :frame-options :sameorigin
-                                                         :content-type-options :nosniff}
-                                              :static {:resources "public"}
-                                              :responses {:not-modified-responses true
-                                                          :absolute-redirects true
-                                                          :content-types true
-                                                          :default-charset "utf-8"}}]]}
+                                  [:defaults (get-defaults profile store)]]}
                  ["/" {:name :home
                        :get {:handler (fn [req] (response/found (utils/login-path req)))}}]
                  (pages.auth/auth-routes stripe db email-service)]
