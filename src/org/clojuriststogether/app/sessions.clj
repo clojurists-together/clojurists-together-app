@@ -18,7 +18,7 @@
 
 (defmethod ig/suspend-key! :app/cookie-session-store [_ _])
 
-(defmethod ig/resume-key :app/cookie-session-store [k opts old-impl old-opts]
+(defmethod ig/resume-key :app/cookie-session-store [k opts old-opts old-impl]
   (if (= opts old-opts)
     old-impl
     (do
