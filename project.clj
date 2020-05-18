@@ -18,7 +18,6 @@
                  [honeysql "0.9.10"]
                  [io.sentry/sentry-clj "0.7.2"]
                  [clj-http "3.10.0"]
-                 [jdbc-ring-session "1.2"]
                  ;; Logging
                  [org.clojure/tools.logging "1.1.0"]
                  [org.slf4j/jcl-over-slf4j "1.7.25"]

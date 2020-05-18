@@ -30,3 +30,8 @@
 
 (derive :app/memory-session-store :app/session-store)
 (derive :app/cookie-session-store :app/session-store)
+
+(comment
+  ;; Generate session cookie
+  (codec/base64-encode (crypto.random/bytes 16))
+  )

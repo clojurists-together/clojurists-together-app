@@ -313,7 +313,8 @@
                                                     :stripe_customer_id customer-id}]
                                           :returning [:id]}
                                          (sql/format)
-                                         (jdbc/execute! db))
+                                         (jdbc/query db)
+                                         (first))
 
                              ;; Create Checkout session
                              plan-id (get-in req [:form-params "plan"])
@@ -325,7 +326,7 @@
                          ;; Add them to the website
                          ;; Add to Google docs
                          (-> (checkout-response req session stripe)
-                             (assoc-in [:session :member-id] (first member)))))}}]
+                             (assoc-in [:session :member-id] (:id member)))))}}]
    ["/register/company"
     {:name :register-company
      :get {:parameters
@@ -435,7 +436,8 @@
                                            :updates-email updates-email}]
                                  :returning [:id]}
                                 (sql/format)
-                                (jdbc/execute! db))
+                                (jdbc/query db)
+                                first)
 
                     ;; Create Checkout session
                     plan-id (get-in req [:form-params "plan"])
@@ -447,4 +449,4 @@
                 ;; Add them to the website
                 ;; Add to Google docs
                 (-> (checkout-response req session stripe)
-                    (assoc-in [:session :member-id] (first member)))))}}]])
+                    (assoc-in [:session :member-id] (:id member)))))}}]])

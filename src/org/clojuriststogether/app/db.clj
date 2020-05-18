@@ -4,10 +4,22 @@
             [cheshire.core :as json]
             [ragtime.jdbc]
             [ragtime.repl]
+            [honeysql.format :as f]
+            [honeysql.helpers :as h]
             [clojure.java.jdbc :as jdbc])
   (:import (java.sql Timestamp PreparedStatement)
            (org.postgresql.util PGobject)
            (java.time Instant)))
+
+;; If we need more Postgres specific extensions than this, then we should use
+;; https://github.com/nilenso/honeysql-postgres
+(defmethod f/format-clause :returning [[_ fields] _]
+  (str "RETURNING " (f/comma-join (map f/to-sql fields))))
+
+(f/register-clause! :returning 225)
+
+(h/defhelper returning [m fields]
+             (assoc m :returning (h/collify fields)))
 
 (extend-protocol jdbc/IResultSetReadColumn
   Timestamp
