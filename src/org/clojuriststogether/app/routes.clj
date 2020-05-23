@@ -25,7 +25,10 @@
   {:cookies true
    :session {:flash true
              :store store
-             :cookie-attrs {:http-only true, :same-site :strict}}
+             ;; :strict breaks when clicking links from Gmail as they redirect
+             ;; through a google.com/url checking page and this counts as a top-level
+             ;; navigation.
+             :cookie-attrs {:http-only true, :same-site :lax}}
    :security {:anti-forgery true
               :xss-protection {:enable? true, :mode :block}
               :frame-options :sameorigin
