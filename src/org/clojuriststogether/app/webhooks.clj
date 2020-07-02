@@ -17,6 +17,9 @@
         plan-id (if (= webhook-type "customer.subscription.deleted")
                   nil
                   (get-in object [:plan :id]))]
+
+    ;; TODO: insert into subscriptions instead
+
     (->> {:update :members
           :set {:subscription_plan plan-id}
           :where [:= :stripe_customer_id customer-id]}

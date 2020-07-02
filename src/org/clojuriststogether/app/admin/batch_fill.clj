@@ -24,7 +24,7 @@
        (sql/format)
        (jdbc/query db)))
 
-(defn update-all-customers [db]
+(defn create-stripe-customers [db]
   ; heroku run echo \$JDBC_DATABASE_URL
   ;(set! Stripe/apiKey "")
 
@@ -32,3 +32,11 @@
     (doseq [member members]
       (prn "Updating" (:email member))
       (create-customer-and-subscription db member))))
+
+(defn backfill-subscriptions [db]
+  (doseq [subscription (take 3 (.autoPagingIterable (Subscription/list {})))]
+
+
+    (prn subscription)
+    )
+  )
