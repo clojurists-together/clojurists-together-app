@@ -34,6 +34,8 @@
            [:li
             [:a.block.px-4.py-1.md:p-2.lg:px-4 {:href "#" :title "Link"} "Link"]]]
         [:ul.flex.flex-col.mt-4.-mx-4.pt-4.border-t.md:flex-row.md:items-center.md:mx-0.md:ml-auto.md:mt-0.md:pt-0.md:border-0
+         [:li
+          [:a.block.px-4.py-1.md:p-2.lg:px-4 {:href "https://clojuriststogether.org" :title "clojuriststogether.org"} "clojuriststogether.org"]]
          (if (get-in req [:session :member-id])
            [:li
             [:form {:method "POST" :action (utils/route-name->path req :logout)
