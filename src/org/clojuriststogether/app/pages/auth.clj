@@ -12,7 +12,7 @@
             [clojure.java.jdbc :as jdbc]
             [org.clojuriststogether.app.sessions :as sessions]
             [clojure.spec.alpha :as s])
-  (:import (com.stripe.model Plan Product Customer)
+  (:import (com.stripe.model Plan Product Customer Subscription)
 
            com.stripe.model.checkout.Session
            (com.stripe.exception InvalidRequestException)
@@ -114,6 +114,9 @@
                                                          :body "<h1>Product not found</h1>"}})))))
 
 (def retrieve-product-memo (memoize retrieve-product))
+
+(defn retrieve-subscription [subscription-id]
+  (Subscription/retrieve subscription-id))
 
 (defn unauthenticated!
   "This is an ugly hack until I have middleware to redirect logged in users to manage page."
@@ -226,13 +229,14 @@
 
 
                                         [:h2 {:class "block text-lg mb-2 mt-4"} "Billing"]
-                                        #_(let [plan (some-> (:subscription_plan member)
-                                                           (retrieve-plan-memo)
-                                                           (get "product")
-                                                           (retrieve-product-memo)
-                                                           )]
-                                          [:p "Current Plan: " (or plan
-                                                                   "no plan")])
+                                        (let [subscription (some-> (:subscription_id member)
+                                                                   (retrieve-subscription))
+                                              status (or (some-> subscription (.getStatus))
+                                                         "No subscription")]
+                                          [:p {:class (when (= status "past_due")
+                                                        "text-red-500")}
+                                           "Subscription status: "
+                                           status])
 
                                         [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
                                          (anti-forgery/anti-forgery-field)

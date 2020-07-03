@@ -10,6 +10,7 @@
   ;; Update subscription_plan, or set it to null
   ;; TODO: handle race conditions where new subscription is created and then old one is deleted
   (let [object (get-in payload [:data :object])
+        subscription-id (get object :id)
         customer-id (get object :customer)
         _ (prn "customer" customer-id)
         _ (prn object)
@@ -18,7 +19,8 @@
                   nil
                   (get-in object [:plan :id]))]
     (->> {:update :members
-          :set {:subscription_plan plan-id}
+          :set {:subscription_id subscription-id
+                :subscription_plan plan-id}
           :where [:= :stripe_customer_id customer-id]}
          (sql/format)
          (jdbc/execute! db))))
@@ -34,6 +36,9 @@
                   (case webhook-type
                     ("customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted")
                     (handle-subscription-event db payload)
+
+
+
                     (prn "Ignoring webhook" {:webhook-type webhook-type}))
                   (response/ok {:type webhook-type
                                 :id id

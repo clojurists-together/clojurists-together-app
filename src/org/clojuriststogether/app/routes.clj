@@ -71,7 +71,8 @@
         router (ring/router
                  routes
                  ;; TODO: disable diffs in prod
-                 {:reitit.middleware/transform (if (= :dev profile)
+                 {
+                  #_ #_ :reitit.middleware/transform (if (= :dev profile)
                                                  dev/print-request-diffs
                                                  identity)
                   :validate spec/validate                   ;; enable spec validation for route data
