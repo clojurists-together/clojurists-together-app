@@ -6,7 +6,6 @@
             [org.clojuriststogether.app.spec :as specs]
             [org.clojuriststogether.app.email :as email]
             [honeysql.core :as sql]
-            [honeysql.helpers :as hh]
             [spec-tools.data-spec :as ds]
             [clojure.string :as str]
             [clojure.java.jdbc :as jdbc]
