@@ -122,6 +122,27 @@
                       :headers {"Location" (utils/route-name->path req :manage)}
                       :body ""})))
 
+(defn preferred-name-input [value]
+  [:div.mb-4
+   [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
+   [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+    {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"
+     :value value}]])
+
+(defn full-name-input [value]
+  [:div.mb-4
+   [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Full Name"]
+   [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+    {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"
+     :value value}]])
+
+(defn email-input [value]
+  [:div.mb-4
+   [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email Address"]
+   [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+    {:name "email" :type "email" :placeholder sample-email :required true
+     :value value}]])
+
 (defn auth-routes [stripe db email-service]
   [["/login" {:name :login
               :get {:handler (fn [req]
@@ -208,9 +229,17 @@
                                                          (get-member db))]
                                   (-> (template/template req
                                         [:h1 {:class "block text-xl mb-2"} "Manage your account"]
-                                        [:p "Email: " (:email member)]
-                                        [:p "Preferred Name: " (:preferred_name member)]
-                                        [:p "Full Name: " (:person_name member)]
+
+                                        [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+                                         {:method "POST"}
+
+                                         (preferred-name-input (:preferred_name member))
+                                         (full-name-input (:person_name member))
+                                         (email-input (:email member))
+
+                                         (anti-forgery/anti-forgery-field)
+                                         [:div.flex.items-center.justify-between
+                                          [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Update Details"]]]
 
                                         (when (= "company" (:member_type member))
                                           (list
@@ -222,23 +251,36 @@
                                             [:p "Updates email: " (:updates-email member "not provided")]))
 
 
-
-
                                         [:h2 {:class "block text-lg mb-2 mt-4"} "Billing"]
                                         #_(let [plan (some-> (:subscription_plan member)
-                                                           (retrieve-plan-memo)
-                                                           (get "product")
-                                                           (retrieve-product-memo)
-                                                           )]
-                                          [:p "Current Plan: " (or plan
-                                                                   "no plan")])
+                                                             (retrieve-plan-memo)
+                                                             (get "product")
+                                                             (retrieve-product-memo)
+                                                             )]
+                                            [:p "Current Plan: " (or plan
+                                                                     "no plan")])
 
                                         [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
                                          (anti-forgery/anti-forgery-field)
                                          [:button {:class link-blue} "Manage billing details"]])
                                       (response/ok)
                                       (response/content-type "text/html"))
-                                  (response/found (utils/login-path req))))}}]
+                                  (response/found (utils/login-path req))))}
+               :post {:handler (fn [req]
+                                 (if-let [member (some->> (sessions/member-id req)
+                                                          (get-member db))]
+                                   (let [{:strs [preferred-name name email]} (get req :form-params)]
+                                     (->> {:update :members
+                                           :set {:preferred_name preferred-name
+                                                 :person_name name
+                                                 :email email}
+                                           :where [:= :id (:id member)]}
+                                          sql/format
+                                          (jdbc/execute! db))
+                                     (println (get-in req [:form-params]))
+                                     (-> (response/found "/manage")
+                                         (response/content-type "text/html")))
+                                   (response/found (utils/login-path req))))}}]
    ["/manage/billing" {:name :manage-billing
                        :post {:handler (fn [req]
                                          (if-let [member-id (sessions/member-id req)]
@@ -259,19 +301,9 @@
                               req
                               [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
                                {:method "POST"}
-                               ;; TODO: copy values from here into the Full Name form
-                               [:div.mb-4
-                                [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
-                                [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                                 {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"}]]
-                               [:div.mb-4
-                                [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Full Name"]
-                                [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                                 {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"}]]
-                               [:div.mb-4
-                                [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email Address"]
-                                [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                                 {:name "email" :type "email" :placeholder sample-email :required true}]]
+                               (preferred-name-input nil)
+                               (full-name-input nil)
+                               (email-input nil)
                                [:input {:type "hidden" :name "plan" :value plan-id}]
                                (anti-forgery/anti-forgery-field)
                                [:div.mb-4
@@ -343,18 +375,9 @@
                       [:div.mb-2
                        [:span.block.text-gray-700.text-md.font-bold.mb-2
                         "Primary Contact Details"]]
-                      [:div.mb-4
-                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
-                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                        {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"}]]
-                      [:div.mb-4
-                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Name"]
-                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                        {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"}]]
-                      [:div.mb-4
-                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email Address"]
-                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                        {:name "email" :type "email" :placeholder "john@acme.com" :required true}]]
+                      (preferred-name-input nil)
+                      (full-name-input nil)
+                      (email-input nil)
                       [:div.mb-2
                        [:span.block.text-gray-700.text-md.font-bold.mb-2
                         "Organization Details"]]
