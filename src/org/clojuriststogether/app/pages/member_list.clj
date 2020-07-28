@@ -44,7 +44,7 @@
                  :founding_member :member_type :subscription_plan
                  :logo_slug]
         :from [:members]
-        :order-by [:member_type :created_at]}
+        :order-by [:member_type :created_at :id]}
        ;; TODO: filter for only active members
        (sql/format)
        (jdbc/query db)
