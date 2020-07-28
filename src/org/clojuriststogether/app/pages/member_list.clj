@@ -56,7 +56,9 @@
                    :logo (:logo_slug member)}
                   {:name (:person_name member)})
                 {:level (get plans-mapping (:subscription_plan member))
-                 :founding (:founding_member member)})))))
+                 :founding (:founding_member member)})))
+       ;; Don't think this removes all non-active members yet
+       (remove :level)))
 
 (defn member-list-routes [db stripe]
   [["/member-list"
