@@ -42,7 +42,7 @@
 (defn get-members [db]
   (->> {:select [:person_name :organization_name :organization_url
                  :founding_member :member_type :subscription_plan
-                 :logo_slug]
+                 :logo_slug :tagline]
         :from [:members]
         :order-by [:member_type :created_at :id]}
        ;; TODO: filter for only active members
@@ -56,7 +56,9 @@
                    :logo (:logo_slug member)}
                   {:name (:person_name member)})
                 {:level (get plans-mapping (:subscription_plan member))
-                 :founding (:founding_member member)})))
+                 :founding (:founding_member member)}
+                (when-let [tagline (:tagline member)]
+                  {:tagline tagline}))))
        ;; Don't think this removes all non-active members yet
        (filter :level)))
 
