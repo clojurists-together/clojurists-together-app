@@ -2,7 +2,8 @@
   (:require [ring.util.http-response :as response]
             [org.clojuriststogether.app.utils :as utils]
             [clojure.java.jdbc :as jdbc]
-            [honeysql.core :as sql]))
+            [honeysql.core :as sql]
+            [cheshire.core :as cheshire]))
 
 (def plans-mapping
   {
@@ -52,9 +53,11 @@
               (merge
                 (if (= "company" (:member_type member))
                   {:name (:organization_name member)
+                   :member_type (:member_type member)
                    :url (:organization_url member)
                    :logo (:logo_slug member)}
-                  {:name (:person_name member)})
+                  {:name (:person_name member)
+                   :member_type (:member_type member)})
                 {:level (get plans-mapping (:subscription_plan member))
                  :founding (:founding_member member)}
                 (when-let [tagline (:tagline member)]
@@ -62,12 +65,24 @@
        ;; Don't think this removes all non-active members yet
        (filter :level)))
 
-(defn member-list-routes [db stripe]
+(defn get-member-stats [db]
+  (->> {:select [:%count.* :member_type]
+        :from [:members]
+        :where [:<> :subscription_plan nil]
+        :group-by [:member_type]}
+       (sql/format)
+       (jdbc/query db)
+       (mapcat (fn [{:keys [member_type count]}]
+                 (list member_type count)))
+       (apply hash-map)))
+
+(defn member-list-routes [db _stripe]
   [["/member-list"
     {:name :member-list
-     :get {:handler (fn [req]
+     :get {:handler (fn [_req]
                       (->
-                        {:members (get-members db)}
-                        (cheshire.core/generate-string {:pretty true})
+                        {:members (get-members db)
+                         :member_stats (get-member-stats db)}
+                        (cheshire/generate-string {:pretty true})
                         (response/ok)
                         (response/content-type "application/json")))}}]])
