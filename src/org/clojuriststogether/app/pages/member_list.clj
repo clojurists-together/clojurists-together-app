@@ -22,6 +22,7 @@
    "plan_GYMGklEctvcvl2" "map"
    "plan_GYMFD9fLVTXvNH" "transduce"
    "plan_GYMFuEYbKe7nhC" "transduce"
+   "price_1JNPd4GYL0HLUlSLxdt1vJz8" "transduce"
    "plan_GYMEwKK79GIrt1" "filter"
    "plan_GYMD6AQHDFhQGw" "filter"
    "plan_GYMDwLn4mu4TVa" "into"
