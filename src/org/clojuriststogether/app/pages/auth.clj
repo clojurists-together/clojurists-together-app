@@ -12,11 +12,11 @@
             [org.clojuriststogether.app.sessions :as sessions]
             [clojure.spec.alpha :as s])
   (:import (com.stripe.model Plan Product Customer)
-
            com.stripe.model.checkout.Session
            (com.stripe.exception InvalidRequestException)
            (java.util UUID)
-           (java.time Instant)))
+           (java.time Instant)
+           (java.text NumberFormat)))
 
 (def sample-email "john@clojurelover.com")
 (def link-blue ["inline-block" "align-baseline" "font-bold" "text-blue-500" "hover:text-blue-800"])
@@ -49,6 +49,8 @@
          [:script (format "var checkout = '%s'" (.getId session))]
          [:script
           ;; SECURITY TODO: do this more securely
+          ;; We can now redirect directly from server side with .getUrl when we upgrade
+          ;; the Stripe Java library.
           (format
             "var stripe = Stripe('%s');
 
@@ -60,13 +62,18 @@
       (response/ok)
       (response/content-type "text/html")))
 
-(defn checkout-session [customer-id plan]
-  (com.stripe.model.checkout.Session/create {"payment_method_types" ["card"]
-                                             "customer" customer-id
-                                             "subscription_data" {"items" {"0" {"plan" (.getId plan)}}}
-                                             "success_url" "https://www.clojuriststogether.org/signup-success/"
-                                             ;; TODO: better URLs
-                                             "cancel_url" "https://www.clojuriststogether.org/signup-success/"}))
+(defn checkout-session
+  ([customer-id plan-id]
+   (checkout-session customer-id plan-id
+                     ;; TODO: better URLs
+                     "https://www.clojuriststogether.org/signup-success/"
+                     "https://www.clojuriststogether.org/signup-success/"))
+  ([customer-id plan-id success-url cancel-url]
+   (com.stripe.model.checkout.Session/create {"payment_method_types" ["card"]
+                                              "customer" customer-id
+                                              "subscription_data" {"items" {"0" {"plan" plan-id}}}
+                                              "success_url" success-url
+                                              "cancel_url" cancel-url})))
 
 (defn ^com.stripe.model.billingportal.Session self-serve-session [customer-id]
   (com.stripe.model.billingportal.Session/create
@@ -135,6 +142,53 @@
    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
     {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"
      :value value}]])
+
+(defn format-interval [interval-count interval]
+  (if (= 1 interval-count)
+    (str "every " interval)
+    (str "every " interval-count " " interval "s")))
+
+(defn key-by
+  "Like group-by but assumes a single value for each map key"
+  [f coll]
+  (->> (group-by f coll)
+       (reduce-kv (fn [m k v]
+                    (assoc m k (first v)))
+                  {})))
+
+(def currency-formatter
+  (doto (NumberFormat/getCurrencyInstance)
+    (.setMinimumFractionDigits 0)))
+
+(defn display-plans [req]
+  ;; TODO: migrate to the new Stripe Prices API - https://stripe.com/docs/api/plans
+  (let [products (->> (.autoPagingIterable (Product/list {}))
+                      (key-by #(.getId %)))
+        plans (.autoPagingIterable (Plan/list {}))
+        grouped-plans (->> plans
+                           (map (fn [plan] {:id (.getId plan)
+                                            :interval (.getInterval plan)
+                                            :interval-count (.getIntervalCount plan)
+                                            :amount (.getAmount plan)
+                                            :currency (.getCurrency plan)
+                                            :product (.getProduct plan)}))
+                           (group-by :product))]
+    (map (fn [[id product]]
+           [:div (.getName product)
+            (for [{:keys [interval amount currency interval-count] :as plan} (get grouped-plans id)]
+              [:form {:method "POST" :action (utils/route-name->path req :manage-subscribe)}
+               [:span {:class "block text-sm mb-2 mt-4"} "Plan: " (.format currency-formatter (/ amount 100.0)) " " (str/upper-case currency) " " (format-interval interval-count interval)
+                [:input {:type "hidden" :name "plan" :value (:id plan)}]
+                (anti-forgery/anti-forgery-field)
+                " " [:button {:class link-blue} "Subscribe"]]])
+
+            ])
+         products)))
+
+(comment
+  (display-plans {})
+
+  )
 
 (defn email-input [value]
   [:div.mb-4
@@ -228,41 +282,48 @@
                                 (if-let [member (some->> (sessions/member-id req)
                                                          (get-member db))]
                                   (-> (template/template req
-                                        [:h1 {:class "block text-xl mb-2"} "Manage your account"]
+                                                         [:h1 {:class "block text-xl mb-2"} "Manage your account"]
 
-                                        [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
-                                         {:method "POST"}
+                                                         [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+                                                          {:method "POST"}
 
-                                         (preferred-name-input (:preferred_name member))
-                                         (full-name-input (:person_name member))
-                                         (email-input (:email member))
+                                                          (preferred-name-input (:preferred_name member))
+                                                          (full-name-input (:person_name member))
+                                                          (email-input (:email member))
 
-                                         (anti-forgery/anti-forgery-field)
-                                         [:div.flex.items-center.justify-between
-                                          [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Update Details"]]]
+                                                          (anti-forgery/anti-forgery-field)
+                                                          [:div.flex.items-center.justify-between
+                                                           [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Update Details"]]]
 
-                                        (when (= "company" (:member_type member))
-                                          (list
-                                            [:h2 {:class "block text-lg mb-2 mt-4"} "Company details"]
-                                            [:p "Company Name: " (:organization_name member)]
-                                            [:p "Company URL: " [:a {:class link-blue :href (:organization_url member)} (:organization_url member)]]
-                                            [:h2 {:class "block text-lg mb-2 mt-4"} "Contact details"]
-                                            [:p "Invoicing email: " (:invoicing-email member "not provided")]
-                                            [:p "Updates email: " (:updates-email member "not provided")]))
+                                                         (when (= "company" (:member_type member))
+                                                           (list
+                                                             [:h2 {:class "block text-lg mb-2 mt-4"} "Company details"]
+                                                             [:p "Company Name: " (:organization_name member)]
+                                                             [:p "Company URL: " [:a {:class link-blue :href (:organization_url member)} (:organization_url member)]]
+                                                             [:h2 {:class "block text-lg mb-2 mt-4"} "Contact details"]
+                                                             [:p "Invoicing email: " (:invoicing-email member "not provided")]
+                                                             [:p "Updates email: " (:updates-email member "not provided")]))
 
 
-                                        [:h2 {:class "block text-lg mb-2 mt-4"} "Billing"]
-                                        #_(let [plan (some-> (:subscription_plan member)
-                                                             (retrieve-plan-memo)
-                                                             (get "product")
-                                                             (retrieve-product-memo)
-                                                             )]
-                                            [:p "Current Plan: " (or plan
-                                                                     "no plan")])
+                                                         [:h2 {:class "block text-lg mb-2 mt-4"} "Billing"]
 
-                                        [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
-                                         (anti-forgery/anti-forgery-field)
-                                         [:button {:class link-blue} "Manage billing details"]])
+                                                         (let [plan (some-> (:subscription_plan member)
+                                                                            (retrieve-plan-memo)
+                                                                            (get "product")
+                                                                            (retrieve-product-memo)
+                                                                            )]
+                                                           (list
+                                                             [:p "Current Plan: " (or plan
+                                                                                      "no plan")]
+                                                             (when (nil? plan)
+                                                               (list [:h2 {:class "block text-lg mb-2 mt-4"} "Select a plan"]
+                                                                     (display-plans req))))
+
+                                                           )
+
+                                                         [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
+                                                          (anti-forgery/anti-forgery-field)
+                                                          [:button {:class link-blue} "Manage billing details"]])
                                       (response/ok)
                                       (response/content-type "text/html"))
                                   (response/found (utils/login-path req))))}
@@ -288,6 +349,19 @@
                                                  session (self-serve-session customer-id)]
                                              (response/found (.getUrl session)))
                                            (response/found (utils/login-path req))))}}]
+   ["/manage/subscribe" {:name :manage-subscribe
+                         :post {:parameters {:form {:plan ::specs/plan-id}}
+                                :handler (fn [req]
+                                           (if-let [member-id (sessions/member-id req)]
+                                             (let [customer-id (:stripe_customer_id (get-member db member-id))
+                                                   redirect-url (str "https://app.clojuriststogether.org/"  (utils/route-name->path req :manage))
+                                                   ;; TODO: use :parameters
+                                                   session (checkout-session customer-id
+                                                                             (get-in req [:form-params "plan"])
+                                                                             redirect-url
+                                                                             redirect-url)]
+                                               (checkout-response req session stripe))
+                                             (response/found (utils/login-path req))))}}]
    ["/register/developer"
     {:name :register-developer
      :get {:parameters {:query {:plan ::specs/plan-id}}
@@ -311,6 +385,7 @@
                                 [:p (.getName product) " - " (.getNickname plan)]
                                 [:p (/ (.getAmountDecimal plan) 100) " " (str/upper-case (.getCurrency plan))
                                  " every " (.getInterval plan)]
+                                ;; TODO: format interval correctly with number of months
                                 ;[:p "Plan " plan]
                                 ;[:p "Product " product]
                                 ]
@@ -350,7 +425,7 @@
                              ;; Create Checkout session
                              plan-id (get-in req [:form-params "plan"])
                              plan (retrieve-plan-memo plan-id)
-                             session (checkout-session customer-id plan)]
+                             session (checkout-session customer-id (.getId plan))]
 
                          ;; Later:
                          ;; Add them to Mailchimp
@@ -464,7 +539,7 @@
                     ;; Create Checkout session
                     plan-id (get-in req [:form-params "plan"])
                     plan (retrieve-plan-memo plan-id)
-                    session (checkout-session customer-id plan)]
+                    session (checkout-session customer-id (.getId plan))]
 
                 ;; Later:
                 ;; Add them to Mailchimp
