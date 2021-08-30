@@ -354,7 +354,7 @@
                                 :handler (fn [req]
                                            (if-let [member-id (sessions/member-id req)]
                                              (let [customer-id (:stripe_customer_id (get-member db member-id))
-                                                   redirect-url (str "https://app.clojuriststogether.org/"  (utils/route-name->path req :manage))
+                                                   redirect-url (str "https://members.clojuriststogether.org"  (utils/route-name->path req :manage))
                                                    ;; TODO: use :parameters
                                                    session (checkout-session customer-id
                                                                              (get-in req [:form-params "plan"])
