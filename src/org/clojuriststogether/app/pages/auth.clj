@@ -307,23 +307,24 @@
 
                                                          [:h2 {:class "block text-lg mb-2 mt-4"} "Billing"]
 
-                                                         (let [plan (some-> (:subscription_plan member)
+                                                         [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
+                                                          (anti-forgery/anti-forgery-field)
+                                                          [:button {:class link-blue} "Manage billing details"]]
+
+                                                         (let [subscription-plan (:subscription_plan member)
+                                                               plan (some-> subscription-plan
                                                                             (retrieve-plan-memo)
                                                                             (get "product")
                                                                             (retrieve-product-memo)
                                                                             )]
                                                            (list
                                                              [:p "Current Plan: " (or plan
+                                                                                      ;; TODO: find out why sometimes plan isn't found.
+                                                                                      subscription-plan
                                                                                       "no plan")]
-                                                             (when (nil? plan)
+                                                             (when (nil? subscription-plan)
                                                                (list [:h2 {:class "block text-lg mb-2 mt-4"} "Select a plan"]
-                                                                     (display-plans req))))
-
-                                                           )
-
-                                                         [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
-                                                          (anti-forgery/anti-forgery-field)
-                                                          [:button {:class link-blue} "Manage billing details"]])
+                                                                     (display-plans req))))))
                                       (response/ok)
                                       (response/content-type "text/html"))
                                   (response/found (utils/login-path req))))}
