@@ -131,14 +131,14 @@
 
 (defn preferred-name-input [value]
   [:div.mb-4
-   [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name"]
+   [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "preferred-name"} "Preferred Name (first name)"]
    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
     {:name "preferred-name" :type "text" :placeholder "John" :required true :autocomplete "name"
      :value value}]])
 
 (defn full-name-input [value]
   [:div.mb-4
-   [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Full Name"]
+   [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "name"} "Full Name (first and last name)"]
    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
     {:name "name" :type "text" :placeholder "John Smith" :required true :autocomplete "name"
      :value value}]])
