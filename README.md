@@ -1,10 +1,5 @@
 # Clojurists Together app
 
-[![CircleCI](https://circleci.com/gh/clojurists-together/clojurists-together-app.svg?style=svg)](https://circleci.com/gh/clojurists-together/clojurists-together-app)
-
-## Installation
-
-Download from http://example.com/FIXME.
 
 ## Usage
 
@@ -15,22 +10,6 @@ FIXME: explanation
 ```
 heroku labs:enable runtime-dyno-metadata -a <app name>
 ```
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
 
 ## License
 
