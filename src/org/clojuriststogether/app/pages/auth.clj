@@ -301,8 +301,8 @@
                                                              [:p "Company Name: " (:organization_name member)]
                                                              [:p "Company URL: " [:a {:class link-blue :href (:organization_url member)} (:organization_url member)]]
                                                              [:h2 {:class "block text-lg mb-2 mt-4"} "Contact details"]
-                                                             [:p "Invoicing email: " (:invoicing-email member "not provided")]
-                                                             [:p "Updates email: " (:updates-email member "not provided")]))
+                                                             [:p "Invoicing email: " (:invoicing-email member [:span.italic (:email member)])]
+                                                             [:p "Updates email: " (:updates-email member [:span.italic (:email member)])]))
 
 
                                                          [:h2 {:class "block text-lg mb-2 mt-4"} "Billing"]
