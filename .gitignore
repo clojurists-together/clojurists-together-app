@@ -13,3 +13,5 @@ pom.xml.asc
 .envrc
 .calva/
 .lsp/
+.idea/**
+*.iml
