@@ -26,6 +26,7 @@
    "plan_GYMEwKK79GIrt1" "filter"
    "plan_GYMD6AQHDFhQGw" "filter"
    "price_1KNjkRGYL0HLUlSLlJ6VD4It" "filter"
+   "price_1LebTWGYL0HLUlSLFRdTEVZv" "filter"
    "plan_GYMDwLn4mu4TVa" "into"
    "plan_GYMCd3ySx0VVXt" "into"
    "plan_GYMCg0s8rWxvt3" "cons"
