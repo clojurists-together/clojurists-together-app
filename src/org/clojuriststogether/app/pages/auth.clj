@@ -69,8 +69,7 @@
                      "https://www.clojuriststogether.org/signup-success/"
                      "https://www.clojuriststogether.org/signup-success/"))
   ([customer-id plan-id success-url cancel-url]
-   (com.stripe.model.checkout.Session/create {"payment_method_types" ["card"]
-                                              "customer" customer-id
+   (com.stripe.model.checkout.Session/create {"customer" customer-id
                                               "subscription_data" {"items" {"0" {"plan" plan-id}}}
                                               "success_url" success-url
                                               "cancel_url" cancel-url})))
