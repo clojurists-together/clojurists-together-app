@@ -2,6 +2,7 @@
   (:require [ring.util.http-response :as response]
             [clojure.java.jdbc :as jdbc]
             [cheshire.core :as json]
+            [clojure.string :as str]
             [honeysql.core :as sql])
   (:import (com.stripe.net Webhook)))
 
@@ -35,17 +36,23 @@
   ["/webhook/stripe"
    {:post
     {:handler (fn [req]
-                (if-let [payload (verified-payload (slurp (:body req))
-                                                   (get-in req [:headers "stripe-signature"])
-                                                   webhook-secret)]
-                  (let [webhook-type (get payload :type)
-                        id (get payload :id)]
-                    (prn "Handling" webhook-type)
-                    (case webhook-type
-                      ("customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted")
-                      (handle-subscription-event db payload)
-                      (prn "Ignoring webhook" {:webhook-type webhook-type}))
-                    (response/ok {:type webhook-type
-                                  :id id
-                                  :status "accepted"}))
-                  (response/bad-request {:error "Invalid Stripe signature"})))}}])
+                (let [signature (get-in req [:headers "stripe-signature"])
+                      payload (verified-payload (slurp (:body req)) signature webhook-secret)]
+                  (cond
+                    (str/blank? signature)
+                    (response/bad-request {:error "Missing Stripe signature"})
+
+                    (nil? payload)
+                    (response/bad-request {:error "Invalid Stripe signature"})
+
+                    :else
+                    (let [webhook-type (get payload :type)
+                          id (get payload :id)]
+                      (prn "Handling" webhook-type)
+                      (case webhook-type
+                        ("customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted")
+                        (handle-subscription-event db payload)
+                        (prn "Ignoring webhook" {:webhook-type webhook-type}))
+                      (response/ok {:type webhook-type
+                                    :id id
+                                    :status "accepted"})))))}}])
