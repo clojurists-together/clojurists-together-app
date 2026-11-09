@@ -2,8 +2,8 @@
   (:require [ring.util.http-response :as response]
             [clojure.java.jdbc :as jdbc]
             [cheshire.core :as json]
-            [honeysql.core :as sql]
-            [clojure.java.io :as io]))
+            [honeysql.core :as sql])
+  (:import (com.stripe.net Webhook)))
 
 (defn handle-subscription-event [db payload]
   ;; Lookup customer from event
@@ -23,18 +23,32 @@
          (sql/format)
          (jdbc/execute! db))))
 
-(defn stripe-webhook [db]
+(defn- verified-payload
+  "Returns the parsed body, or nil unless signature is valid for it."
+  [body signature webhook-secret]
+  (try
+    (Webhook/constructEvent body signature webhook-secret)
+    (json/parse-string body true)
+    ;; Besides SignatureVerificationException, constructEvent throws Gson, number format,
+    ;; null pointer and index exceptions on a malformed body or header. It does no I/O,
+    ;; so any exception means the request can't be verified.
+    (catch Exception _ nil)))
+
+(defn stripe-webhook [db webhook-secret]
   ["/webhook/stripe"
    {:post
     {:handler (fn [req]
-                (let [payload (json/parse-stream (io/reader (:body req)) true)
-                      webhook-type (get payload :type)
-                      id (get payload :id)]
-                  (prn "Handling" webhook-type)
-                  (case webhook-type
-                    ("customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted")
-                    (handle-subscription-event db payload)
-                    (prn "Ignoring webhook" {:webhook-type webhook-type}))
-                  (response/ok {:type webhook-type
-                                :id id
-                                :status "accepted"})))}}])
+                (if-let [payload (verified-payload (slurp (:body req))
+                                                   (get-in req [:headers "stripe-signature"])
+                                                   webhook-secret)]
+                  (let [webhook-type (get payload :type)
+                        id (get payload :id)]
+                    (prn "Handling" webhook-type)
+                    (case webhook-type
+                      ("customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted")
+                      (handle-subscription-event db payload)
+                      (prn "Ignoring webhook" {:webhook-type webhook-type}))
+                    (response/ok {:type webhook-type
+                                  :id id
+                                  :status "accepted"}))
+                  (response/bad-request {:error "Invalid Stripe signature"})))}}])

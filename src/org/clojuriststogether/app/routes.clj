@@ -50,7 +50,7 @@
         (assoc :proxy true))
     (defaults store)))
 
-(defmethod ig/init-key :app/handler [_ {:keys [stripe db store profile email-service]}]
+(defmethod ig/init-key :app/handler [_ {:keys [stripe stripe-webhook-secret db store profile email-service]}]
   (let [routes [["" {:middleware [
                                   :parameters
                                   :format-negotiate
@@ -69,7 +69,7 @@
                 ["" {:middleware [:exception
                                   :format-response
                                   :coerce-response]}
-                 (webhooks/stripe-webhook db)]]
+                 (webhooks/stripe-webhook db stripe-webhook-secret)]]
         router (ring/router
                  routes
                  ;; TODO: disable diffs in prod

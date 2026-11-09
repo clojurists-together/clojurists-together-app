@@ -76,6 +76,8 @@
    ["empty signature header" forged-event ""]
    ["garbage signature header" forged-event "nonsense"]
    ["non-numeric timestamp" forged-event "t=abc,v1=deadbeef"]
+   ["timestamp key with no value" forged-event "t"]
+   ["signature key with no value" forged-event "t=1,v1"]
    ["signed with the wrong secret" forged-event (signature-header forged-event "whsec_wrong")]
    ["signature for a different body" forged-event (signature-header created-event secret)]
    ["timestamp outside the replay window" forged-event
@@ -91,10 +93,10 @@
       (is (= {:status 400 :writes []}
              (post-webhook {:body body :signature signature :webhook-secret secret}))))))
 
-(deftest an-unconfigured-secret-fails-as-a-server-error-and-changes-nothing
+(deftest an-unconfigured-secret-rejects-every-request-and-changes-nothing
   (doseq [webhook-secret [nil ""]]
     (testing (pr-str webhook-secret)
-      (is (= {:status 500 :writes []}
+      (is (= {:status 400 :writes []}
              (post-webhook {:body forged-event
                             :signature (signature-header forged-event "whsec_guess")
                             :webhook-secret webhook-secret}))))))
