@@ -62,7 +62,7 @@
 (defn member-by-email [db email]
   (->> {:select [:*]
         :from [:members]
-        :where [:= :email (sql/call :cast email :citext)]}
+        :where [:= :email [:cast email :citext]]}
        (sql/format)
        (jdbc/query db)
        first))
