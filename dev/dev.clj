@@ -1,9 +1,9 @@
 (ns dev
   (:require
-    [integrant.repl :as ig-repl]
-    [ragtime.repl :as repl]
-    [org.clojuriststogether.app.server :as server]
-    [org.clojuriststogether.app.admin.migrate :as migrate]))
+   [integrant.repl :as ig-repl]
+   [ragtime.repl :as repl]
+   [org.clojuriststogether.app.server :as server]
+   [org.clojuriststogether.app.admin.migrate :as migrate]))
 
 (ig-repl/set-prep! (fn [] (server/prep :dev)))
 

@@ -27,6 +27,9 @@
                  [ch.qos.logback/logback-classic "1.6.6"
                   :exclusions [org.slf4j/slf4j-api]]
                  [hikari-cp "4.1.0"]]
+  :plugins [[dev.weavejester/lein-cljfmt "0.16.6"]]
+  :cljfmt {:indent-line-comments? true
+           :paths ["src" "test" "dev" "project.clj" "resources/config.edn"]}
   :min-lein-version "2.7.1"
   :main org.clojuriststogether.app.main
   :target-path "target/%s"

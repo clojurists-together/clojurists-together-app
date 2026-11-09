@@ -5,8 +5,8 @@
                :db #ig/ref :org.clojuriststogether.app.db/hikari-cp
                :store #ig/ref :app/session-store
                :email-service #ig/ref :org.clojuriststogether.app.email/email-service
-    :profile #profile{:dev :dev
-                      :prod :prod}}
+               :profile #profile{:dev :dev
+                                 :prod :prod}}
  #profile{:dev :org.clojuriststogether.app.email/logging
           :prod :org.clojuriststogether.app.email/sendgrid} {:api-key #env "SENDGRID_API_KEY"}
  ;; A random value will be generated for session cookie key if it is not provided

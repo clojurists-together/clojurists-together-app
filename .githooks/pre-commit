@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.clj' '*.edn')
+[ -z "$staged" ] && exit 0
+
+partial=$(git diff --name-only -- $staged)
+if [ -n "$partial" ]; then
+  echo "cljfmt: these files have unstaged changes, so they can't be auto-formatted. Stage or stash them, then commit again:" >&2
+  echo "$partial" >&2
+  exit 1
+fi
+
+lein cljfmt fix $staged
+git add -- $staged

@@ -33,5 +33,4 @@
 
 (comment
   ;; Generate session cookie
-  (codec/base64-encode (crypto.random/bytes 16))
-  )
+  (codec/base64-encode (crypto.random/bytes 16)))

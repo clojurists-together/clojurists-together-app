@@ -2,6 +2,7 @@
 
 ```console
 bin/init-dev-db
+bin/install-git-hooks
 lein migrate
 ```
 
