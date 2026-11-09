@@ -2,7 +2,7 @@
   (:require [ring.util.http-response :as response]
             [org.clojuriststogether.app.utils :as utils]
             [clojure.java.jdbc :as jdbc]
-            [honeysql.core :as sql]
+            [honey.sql :as sql]
             [cheshire.core :as cheshire]))
 
 (def plans-mapping

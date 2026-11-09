@@ -1,5 +1,5 @@
 (ns org.clojuriststogether.app.admin.batch-fill
-  (:require [honeysql.core :as sql]
+  (:require [honey.sql :as sql]
             [clojure.java.jdbc :as jdbc])
   (:import (com.stripe.model Customer Subscription)
            (com.stripe Stripe)))
