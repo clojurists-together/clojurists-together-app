@@ -78,7 +78,7 @@
 (defn member-by-email [db email]
   (->> {:select [:*]
         :from [:members]
-        :where [:= :email email]}
+        :where [:= :email (sql/call :cast email :citext)]}
        (sql/format)
        (jdbc/query db)
        first))
@@ -266,16 +266,15 @@
               :post {:parameters {:form {:email ::specs/email}}
                      :handler
                      (fn [req]
-                       (let [email (get-in req [:form-params "email"])
-                             member-id (:id (member-by-email db email))]
-                         (-> (if member-id
+                       (let [member (member-by-email db (get-in req [:form-params "email"]))]
+                         (-> (if member
                                (let [login-id (UUID/randomUUID)]
                                  (->> {:insert-into :login_links
                                        :values [{:id login-id
-                                                 :member_id member-id}]}
+                                                 :member_id (:id member)}]}
                                       sql/format
                                       (jdbc/execute! db))
-                                 (email/send email-service {:to email
+                                 (email/send email-service {:to (:email member)
                                                             :from "hi@clojuriststogether.org"
                                                             :subject "Log in to Clojurists Together"
                                                             :body (format "<p><a clicktracking=off href='%s'>Click here to log in</a>"
