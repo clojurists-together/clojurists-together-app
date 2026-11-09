@@ -19,8 +19,7 @@
                [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
                [:title "Clojurists Together Members"]
                [:link {:href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" :rel "stylesheet"}]
-               [:style base-styles]
-               [:script {:src "https://js.stripe.com/v3/"}]]
+               [:style base-styles]]
               [:body.flex.flex-col.min-h-screen.bg-gray-100.text-gray-800.antialiased
                [:nav.bg-white.border-b.border-gray-200 {:role "navigation"}
                 [:div.container.mx-auto.px-4.py-3.flex.flex-wrap.items-center.justify-between

@@ -1,8 +1,7 @@
 {:app/jetty {:port #long #or [#env PORT 3000]
              :join? false
              :handler #ig/ref :app/handler}
- :app/handler {:stripe #ig/ref :org.clojuriststogether.app.stripe/stripe
-               :db #ig/ref :org.clojuriststogether.app.db/hikari-cp
+ :app/handler {:db #ig/ref :org.clojuriststogether.app.db/hikari-cp
                :store #ig/ref :app/session-store
                :email-service #ig/ref :org.clojuriststogether.app.email/email-service
     :profile #profile{:dev :dev
@@ -15,5 +14,4 @@
                                            :maximum-pool-size 5}
  :org.clojuriststogether.app.sentry/sentry {:dsn #env "SENTRY_DSN"
                                             :release #env "HEROKU_SLUG_COMMIT"}
- :org.clojuriststogether.app.stripe/stripe {:publishable-key #env "STRIPE_PUBLISHABLE_KEY"
-                                            :secret-key #env "STRIPE_SECRET_KEY"}}
+ :org.clojuriststogether.app.stripe/stripe {:secret-key #env "STRIPE_SECRET_KEY"}}

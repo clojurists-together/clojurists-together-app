@@ -3,7 +3,6 @@
   (:import (com.stripe Stripe)))
 
 (defmethod ig/init-key ::stripe
-  [_ {:keys [publishable-key secret-key]}]
-
+  [_ {:keys [secret-key]}]
   (set! Stripe/apiKey secret-key)
-  {:publishable-key publishable-key})
+  nil)
