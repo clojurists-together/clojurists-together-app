@@ -78,7 +78,7 @@
                  (list member_type count)))
        (apply hash-map)))
 
-(defn member-list-routes [db _stripe]
+(defn member-list-routes [db]
   [["/member-list"
     {:name :member-list
      :get {:handler (fn [_req]

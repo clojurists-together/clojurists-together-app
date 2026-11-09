@@ -40,24 +40,8 @@
                        #_[:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]
                       [:p.mt-4.text-sm "Not a member yet? Sign up as a " developer-member " or " company-member " member."]]))
 
-(defn checkout-response [req session stripe]
-  (-> (template/template req
-                         [:div [:h1 "Loading checkout"]
-                          [:script (format "var checkout = '%s'" (.getId session))]
-                          [:script
-          ;; SECURITY TODO: do this more securely
-          ;; We can now redirect directly from server side with .getUrl when we upgrade
-          ;; the Stripe Java library.
-                           (format
-                            "var stripe = Stripe('%s');
-
-                          stripe.redirectToCheckout({
-                            sessionId: checkout}).then(function (result) {
-                              // TODO: Handle errors
-                            });"
-                            (:publishable-key stripe))]])
-      (response/ok)
-      (response/content-type "text/html")))
+(defn checkout-response [^Session session]
+  (response/see-other (.getUrl session)))
 
 (defn checkout-session
   ([customer-id plan-id]
@@ -257,7 +241,7 @@
     {:name "email" :type "email" :placeholder sample-email :required true
      :value value}]])
 
-(defn auth-routes [stripe db email-service]
+(defn auth-routes [db email-service]
   [["/login" {:name :login
               :get {:handler (fn [req]
                                (unauthenticated! req)
@@ -407,7 +391,7 @@
                                                                              (get-in req [:form-params "plan"])
                                                                              redirect-url
                                                                              redirect-url)]
-                                               (checkout-response req session stripe))
+                                               (checkout-response session))
                                              (response/found (utils/login-path req))))}}]
    ["/register/developer"
     {:name :register-developer
@@ -468,7 +452,7 @@
                          ;; Add them to Mailchimp
                          ;; Add them to the website
                          ;; Add to Google docs
-                         (-> (checkout-response req session stripe)
+                         (-> (checkout-response session)
                              (assoc-in [:session :member-id] (:id member)))))}}]
    ["/register/company"
     {:name :register-company
@@ -572,5 +556,5 @@
                 ;; Add them to Mailchimp
                 ;; Add them to the website
                 ;; Add to Google docs
-                (-> (checkout-response req session stripe)
+                (-> (checkout-response session)
                     (assoc-in [:session :member-id] (:id member)))))}}]])

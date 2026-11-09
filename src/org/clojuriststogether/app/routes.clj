@@ -49,7 +49,7 @@
         (assoc :proxy true))
     (defaults store)))
 
-(defmethod ig/init-key :app/handler [_ {:keys [stripe stripe-webhook-secret db store profile email-service]}]
+(defmethod ig/init-key :app/handler [_ {:keys [stripe-webhook-secret db store profile email-service]}]
   (let [routes [["" {:middleware [
                                   :parameters
                                   :format-negotiate
@@ -62,8 +62,8 @@
                                   [:defaults (get-defaults profile store)]]}
                  ["/" {:name :home
                        :get {:handler (fn [req] (response/found (utils/login-path req)))}}]
-                 (pages.auth/auth-routes stripe db email-service)
-                 (pages.member-list/member-list-routes db stripe)]
+                 (pages.auth/auth-routes db email-service)
+                 (pages.member-list/member-list-routes db)]
                 ;; TODO: middleware for Stripe
                 ["" {:middleware [:exception
                                   :format-response
