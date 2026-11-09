@@ -29,9 +29,6 @@
   (try
     (Webhook/constructEvent body signature webhook-secret)
     (json/parse-string body true)
-    ;; Besides SignatureVerificationException, constructEvent throws Gson, number format,
-    ;; null pointer and index exceptions on a malformed body or header. It does no I/O,
-    ;; so any exception means the request can't be verified.
     (catch Exception _ nil)))
 
 (defn stripe-webhook [db webhook-secret]
