@@ -5,7 +5,7 @@
             [org.clojuriststogether.app.utils :as utils]
             [org.clojuriststogether.app.spec :as specs]
             [org.clojuriststogether.app.email :as email]
-            [honeysql.core :as sql]
+            [honey.sql :as sql]
             [spec-tools.data-spec :as ds]
             [clojure.string :as str]
             [clojure.java.jdbc :as jdbc]
@@ -40,24 +40,8 @@
                        #_[:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]
                       [:p.mt-4.text-sm "Not a member yet? Sign up as a " developer-member " or " company-member " member."]]))
 
-(defn checkout-response [req session stripe]
-  (-> (template/template req
-                         [:div [:h1 "Loading checkout"]
-                          [:script (format "var checkout = '%s'" (.getId session))]
-                          [:script
-          ;; SECURITY TODO: do this more securely
-          ;; We can now redirect directly from server side with .getUrl when we upgrade
-          ;; the Stripe Java library.
-                           (format
-                            "var stripe = Stripe('%s');
-
-                          stripe.redirectToCheckout({
-                            sessionId: checkout}).then(function (result) {
-                              // TODO: Handle errors
-                            });"
-                            (:publishable-key stripe))]])
-      (response/ok)
-      (response/content-type "text/html")))
+(defn checkout-response [^Session session]
+  (response/see-other (.getUrl session)))
 
 (defn checkout-session
   ([customer-id plan-id]
@@ -78,7 +62,7 @@
 (defn member-by-email [db email]
   (->> {:select [:*]
         :from [:members]
-        :where [:= :email email]}
+        :where [:= :email [:cast email :citext]]}
        (sql/format)
        (jdbc/query db)
        first))
@@ -267,7 +251,7 @@
 (defn blank->nil [s]
   (when-not (str/blank? s) s))
 
-(defn auth-routes [stripe db email-service]
+(defn auth-routes [db email-service]
   [["/login" {:name :login
               :get {:handler (fn [req]
                                (unauthenticated! req)
@@ -276,16 +260,15 @@
               :post {:parameters {:form {:email ::specs/email}}
                      :handler
                      (fn [req]
-                       (let [email (get-in req [:form-params "email"])
-                             member-id (:id (member-by-email db email))]
-                         (-> (if member-id
+                       (let [member (member-by-email db (get-in req [:form-params "email"]))]
+                         (-> (if member
                                (let [login-id (UUID/randomUUID)]
                                  (->> {:insert-into :login_links
                                        :values [{:id login-id
-                                                 :member_id member-id}]}
+                                                 :member_id (:id member)}]}
                                       sql/format
                                       (jdbc/execute! db))
-                                 (email/send email-service {:to email
+                                 (email/send email-service {:to (:email member)
                                                             :from "hi@clojuriststogether.org"
                                                             :subject "Log in to Clojurists Together"
                                                             :body (format "<p><a clicktracking=off href='%s'>Click here to log in</a>"
@@ -436,7 +419,7 @@
                                                                              (get-in req [:form-params "plan"])
                                                                              redirect-url
                                                                              redirect-url)]
-                                               (checkout-response req session stripe))
+                                               (checkout-response session))
                                              (response/found (utils/login-path req))))}}]
    ["/register/developer"
     {:name :register-developer
@@ -497,7 +480,7 @@
                          ;; Add them to Mailchimp
                          ;; Add them to the website
                          ;; Add to Google docs
-                         (-> (checkout-response req session stripe)
+                         (-> (checkout-response session)
                              (assoc-in [:session :member-id] (:id member)))))}}]
    ["/register/company"
     {:name :register-company
@@ -581,5 +564,5 @@
                 ;; Add them to Mailchimp
                 ;; Add them to the website
                 ;; Add to Google docs
-                (-> (checkout-response req session stripe)
+                (-> (checkout-response session)
                     (assoc-in [:session :member-id] (:id member)))))}}]])

@@ -33,8 +33,9 @@
 
 (s/def ::email-config (s/keys :req-un [::api-key]))
 
-(defmethod ig/pre-init-spec ::sendgrid [_]
-  ::email-config)
+(defmethod ig/assert-key ::sendgrid [_ config]
+  (when-not (s/valid? ::email-config config)
+    (throw (ex-info (s/explain-str ::email-config config) {}))))
 
 (derive ::sendgrid ::email-service)
 

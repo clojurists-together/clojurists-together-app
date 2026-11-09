@@ -7,7 +7,6 @@
             [org.clojuriststogether.app.pages.member-list :as pages.member-list]
             [org.clojuriststogether.app.webhooks :as webhooks]
             [org.clojuriststogether.app.middleware :as app.middleware]
-            [sentry-clj.ring]
             [reitit.ring.middleware.muuntaja :as muuntaja]
 
             [reitit.ring.middleware.dev :as dev]
@@ -50,7 +49,7 @@
         (assoc :proxy true))
     (defaults store)))
 
-(defmethod ig/init-key :app/handler [_ {:keys [stripe db store profile email-service]}]
+(defmethod ig/init-key :app/handler [_ {:keys [stripe-webhook-secret db store profile email-service]}]
   (let [routes [["" {:middleware [
                                   :parameters
                                   :format-negotiate
@@ -63,13 +62,13 @@
                                   [:defaults (get-defaults profile store)]]}
                  ["/" {:name :home
                        :get {:handler (fn [req] (response/found (utils/login-path req)))}}]
-                 (pages.auth/auth-routes stripe db email-service)
-                 (pages.member-list/member-list-routes db stripe)]
+                 (pages.auth/auth-routes db email-service)
+                 (pages.member-list/member-list-routes db)]
                 ;; TODO: middleware for Stripe
                 ["" {:middleware [:exception
                                   :format-response
                                   :coerce-response]}
-                 (webhooks/stripe-webhook db)]]
+                 (webhooks/stripe-webhook db stripe-webhook-secret)]]
         router (ring/router
                  routes
                  ;; TODO: disable diffs in prod

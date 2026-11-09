@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+secret=${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET must be set to the secret the server is running with}
+payload="$(dirname "$0")/../resources/webhooks/customer.subscription.created.json"
+timestamp=$(date +%s)
+signature=$(printf '%s.' "$timestamp" | cat - "$payload" | openssl dgst -sha256 -hmac "$secret" -r | cut -d' ' -f1)
+
+# --data-binary because -d strips newlines, which would invalidate the signature.
+curl -sS -X POST --data-binary @"$payload" \
+  -H "Stripe-Signature: t=$timestamp,v1=$signature" \
+  "http://localhost:${PORT:-3000}/webhook/stripe"
+echo

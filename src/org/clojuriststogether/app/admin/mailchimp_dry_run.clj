@@ -3,7 +3,7 @@
   read-only transaction, only sends GET requests, and has no way to apply or send anything."
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.string :as str]
-            [honeysql.core :as sql]
+            [honey.sql :as sql]
             [org.clojuriststogether.app.db]
             [org.clojuriststogether.app.mailchimp :as mailchimp]
             [org.clojuriststogether.app.mailchimp-sync :as mailchimp-sync]
@@ -11,11 +11,11 @@
             [org.clojuriststogether.app.stripe-sync :as stripe-sync])
   (:gen-class))
 
-(defn- required-env [& names]
+(defn required-env [& names]
   (or (some #(System/getenv %) names)
       (throw (ex-info (str "Set " (str/join " or " names)) {:names names}))))
 
-(defn- members [jdbc-url]
+(defn members [jdbc-url]
   (jdbc/with-db-transaction [tx {:connection-uri jdbc-url} {:read-only? true}]
     (let [read-only (:transaction_read_only (first (jdbc/query tx "SHOW transaction_read_only")))]
       (when-not (= "on" read-only)
