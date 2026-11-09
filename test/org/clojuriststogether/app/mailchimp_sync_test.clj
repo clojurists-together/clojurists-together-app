@@ -48,8 +48,7 @@
     (is (= :all (:email-types op)))
     (is (= "Developer" (:member-type op)))
     (is (= {"FNAME" "Ada" "FULLNAME" "Ada Lovelace" "STRIPE_ID" "cus_ada"} (:merge-fields op)))
-    (testing "held for review because creating a contact sends a welcome email"
-      (is (= :review (:disposition op))))))
+    (is (= :apply (:disposition op)))))
 
 (deftest abandoned-signup-is-ignored
   (is (empty? (sync/plan [(assoc member :subscription_plan nil)] []))))
@@ -221,3 +220,37 @@
     (testing "a separate invoicing email is mentioned so nobody worries about invoices"
       (is (re-find #"Invoices still go to your invoicing email, accounts@example.com"
                    (notice-for (assoc changed :invoicing_email "accounts@example.com")))))))
+
+(deftest a-new-address-gets-its-own-contact-when-the-old-one-cant-receive-email
+  (doseq [status ["unsubscribed" "cleaned"]]
+    (let [app (assoc member :email "new@example.com")
+          ops (sync/plan [app] [(assoc contact :status status)])
+          create (first (filter #(= :create-contact (:op %)) ops))]
+      (testing "the new address is subscribed"
+        (is (= ["new@example.com" "subscribed" "ada@example.com" :apply]
+               ((juxt :contact :status :replaces :disposition) create)))
+        (is (contains? (:tags create) "Member")))
+      (testing "the old contact keeps its status and is detached"
+        (is (= #{[:remove-tag "ada@example.com"] [:clear-merge-field "ada@example.com"]}
+               (set (map (juxt :op :contact) (remove #{create} ops)))))
+        (is (not-any? #(= :set-email (:op %)) ops)))
+      (testing "the member is told"
+        (let [[notice] (sync/notices [app] ops)]
+          (is (= "new@example.com" (:to notice)))
+          (is (re-find #"Mailing list had: ada@example.com" (:body notice)))
+          (is (re-find #"We have updated it to: new@example.com" (:body notice))))))))
+
+(deftest an-unsubscribed-address-that-is-unchanged-stays-unsubscribed
+  (let [ops (sync/plan [member] [(assoc contact :status "unsubscribed")])]
+    (is (not-any? #(= :create-contact (:op %)) ops))))
+
+(deftest safety-stop
+  (let [tagged (for [n (range 30)] (assoc contact :email (str "orphan" n "@example.com")))]
+    (testing "a large removal of the Member tag stops the run"
+      (let [ops (sync/plan [member] (cons contact tagged))]
+        (is (re-find #"Would remove the Member tag 30 times" (sync/unsafe-reason [member] ops)))))
+    (testing "an empty or planless members table stops the run"
+      (is (= "No members with a plan" (sync/unsafe-reason [] [])))
+      (is (= "No members with a plan" (sync/unsafe-reason [(assoc member :subscription_plan nil)] []))))
+    (testing "an ordinary run goes ahead"
+      (is (nil? (sync/unsafe-reason [member] (sync/plan [member] [contact])))))))

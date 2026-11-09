@@ -25,6 +25,16 @@ lein run -m org.clojuriststogether.app.admin.mailchimp-dry-run [details-file]
 
 It needs `MAILCHIMP_API_KEY`, `MAILCHIMP_LIST_ID` and either `MAILCHIMP_SYNC_JDBC_URL` or `JDBC_DATABASE_URL`. To read production from your machine, use `MAILCHIMP_SYNC_JDBC_URL`, not `JDBC_DATABASE_URL`, so nothing else picks up the production database. Set `STRIPE_READ_KEY` to a live key that can read customers to include the Stripe report. The summary has no personal details, but the details file has names and addresses, so keep it out of the repo.
 
+## Mailchimp sync
+
+Brings Mailchimp in line with the app. Run the dry run first, because this one changes things.
+
+```console
+lein run -m org.clojuriststogether.app.admin.mailchimp-apply
+```
+
+`--send-notices` also emails members whose mailing address changed, and needs `SENDGRID_API_KEY`. `--stripe` also updates Stripe customer emails to the app's billing email, and needs `STRIPE_SECRET_KEY`. The run stops before changing anything if there are no members with a plan, or if it would remove the `Member` tag more than 25 times. A failed change is logged and retried on the next run.
+
 ## Testing webhooks
 
 `/webhook/stripe` only accepts requests signed with `STRIPE_WEBHOOK_SECRET`. To send the sample event, signed with the same secret the server is running with:

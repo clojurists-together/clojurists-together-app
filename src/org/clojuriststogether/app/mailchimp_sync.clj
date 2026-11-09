@@ -6,7 +6,7 @@
 
   The app wins: Mailchimp only keeps subscription status and email preferences. Each op has
   a :disposition. :apply is safe to run unattended. :review needs a person because the change
-  sends an email, is hard to undo, or changes the app's own records."
+  is hard to undo, or changes the app's own records."
   (:require [clojure.set :as set]
             [clojure.string :as str]))
 
@@ -151,15 +151,28 @@
      (when-not (contains? (:tags kept) cancelled-tag)
        [(op member :add-tag :apply kept {:tag cancelled-tag})]))))
 
-(defn- create-op [member orphans]
+(defn- replacement-address
+  "Mailchimp won't change the address on an unsubscribed contact, and an unsubscribe only covers
+  the address it was for, so a new address that can't go on the existing contact gets its own."
+  [member kept contacts]
+  (let [wanted (first (app-addresses member))]
+    (when (and (not (subscribed? kept))
+               (not-any? #(= wanted (email-key (:email %))) contacts))
+      wanted)))
+
+(defn- create-op
+  "Creating a contact sends it a welcome email, which holds even when a member's Member Type is
+  set afterwards, so a possible duplicate waits for a person."
+  [member orphans replaces]
   (let [aliases (possible-aliases member orphans)]
-    (op member :create-contact :review {:email (first (app-addresses member))}
+    (op member :create-contact (if (seq aliases) :review :apply) {:email (first (app-addresses member))}
         (cond-> {:status "subscribed"
                  :tags #{member-tag}
                  :email-types :all
                  :member-type (member-type-names (:member_type member))
                  :merge-fields (assoc (into {} (filter val) (desired-fields member))
                                       "STRIPE_ID" (:stripe_customer_id member))}
+          replaces (assoc :replaces (:email replaces))
           (seq aliases) (assoc :reason :possible-alias :aliases (map :email aliases))))))
 
 (defn- orphan-op [members contact]
@@ -198,16 +211,18 @@
       (mapcat (fn [[member cs]]
                 (cond
                   (seq cs)
-                  (let [kept (keeper member cs)]
+                  (let [kept (keeper member cs)
+                        replaced? (and (active? member) (replacement-address member kept cs))]
                     (concat
-                     (if (active? member)
-                       (active-member-ops member kept cs orphans)
-                       (lapsed-member-ops member kept cs active-owned?))
+                     (cond
+                       replaced? [(create-op member orphans kept)]
+                       (active? member) (active-member-ops member kept cs orphans)
+                       :else (lapsed-member-ops member kept cs active-owned?))
                      (mapcat #(duplicate-ops member kept %)
-                             (filter exclusive? (remove #{kept} cs)))))
+                             (filter exclusive? (if replaced? cs (remove #{kept} cs))))))
 
                   (active? member)
-                  [(create-op member orphans)]))
+                  [(create-op member orphans nil)]))
               member-contacts)
       (map #(orphan-op members %) orphans)
       (map (fn [contact]
@@ -215,6 +230,19 @@
                  {:reason :contact-shared-by-members
                   :member-ids (map :id (get owners (:email contact)))}))
            shared)))))
+
+(def max-member-tag-removals
+  "More than this in one run means something upstream is wrong, such as an empty members table.
+  The Member tag decides who is sent a ballot, so the run stops rather than clearing it."
+  25)
+
+(defn unsafe-reason
+  "Returns why these ops shouldn't run, or nil when they're safe."
+  [members ops]
+  (let [removals (count (filter #(and (= :remove-tag (:op %)) (= member-tag (:tag %))) ops))]
+    (cond
+      (not-any? active? members) "No members with a plan"
+      (> removals max-member-tag-removals) (str "Would remove the Member tag " removals " times"))))
 
 (defn- detail [{:keys [tag field reason]}]
   (->> [tag field (some-> reason name)]
@@ -258,11 +286,13 @@ Clojurists Together
     (into {}
           (keep (fn [[member-id own-ops]]
                   (let [changed (first (filter #(= :set-email (:op %)) own-ops))
+                        replacement (first (filter :replaces own-ops))
                         added (first (filter #(and (= :add-tag (:op %)) (= member-tag (:tag %))) own-ops))
                         source (or (first (filter #(= :duplicate-contact (:reason %)) own-ops))
                                    (first (get alias-sources member-id)))]
                     (cond
                       changed [member-id [(:from changed) (:to changed)]]
+                      replacement [member-id [(:replaces replacement) (:contact replacement)]]
                       (and added source) [member-id [(:contact source) (:contact added)]]))))
           (dissoc member-ops nil))))
 

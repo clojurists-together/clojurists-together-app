@@ -1,16 +1,26 @@
 (ns org.clojuriststogether.app.mailchimp
-  "Read-only Mailchimp client. It only issues GET requests."
+  "Mailchimp audience client. Contacts are addressed by email, which Mailchimp hashes."
   (:require [clj-http.client :as client]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  (:import (java.math BigInteger)
+           (java.security MessageDigest)))
 
 (def member-type-category "Member Type")
+(def email-types-category "Email Types")
 
-(defn- get-json [{:keys [api-key]} path params]
+(defn- request [{:keys [api-key]} method path options]
   (let [datacenter (last (str/split api-key #"-"))]
-    (:body (client/get (str "https://" datacenter ".api.mailchimp.com/3.0" path)
-                       {:basic-auth ["sync" api-key]
-                        :as :json
-                        :query-params params}))))
+    (:body (client/request (merge {:method method
+                                   :url (str "https://" datacenter ".api.mailchimp.com/3.0" path)
+                                   :basic-auth ["sync" api-key]
+                                   :as :json}
+                                  options)))))
+
+(defn- get-json [config path params]
+  (request config :get path {:query-params params}))
+
+(defn- send-json [config method path body]
+  (request config method path {:content-type :json :form-params body}))
 
 (defn- get-all [config path field params]
   (loop [items []]
@@ -21,16 +31,25 @@
         items
         (recur items)))))
 
-(defn- member-type-ids
-  "Maps the audience's interest ids to their names, for the hidden Member Type group."
+(defn- subscriber-hash [email]
+  (let [digest (.digest (MessageDigest/getInstance "MD5") (.getBytes (str/lower-case email) "UTF-8"))]
+    (format "%032x" (BigInteger. 1 digest))))
+
+(defn- member-path [{:keys [list-id]} email]
+  (str "/lists/" list-id "/members/" (subscriber-hash email)))
+
+(defn interest-ids
+  "The audience's interests by category title, as {title {name id}}."
   [{:keys [list-id] :as config}]
-  (let [categories (get-all config (str "/lists/" list-id "/interest-categories") :categories {})
-        category (first (filter #(= member-type-category (:title %)) categories))
-        interests (get-all config
-                           (str "/lists/" list-id "/interest-categories/" (:id category) "/interests")
-                           :interests
-                           {})]
-    (into {} (map (juxt :id :name)) interests)))
+  (into {}
+        (for [category (get-all config (str "/lists/" list-id "/interest-categories") :categories {})]
+          [(:title category)
+           (into {}
+                 (map (juxt :name :id))
+                 (get-all config
+                          (str "/lists/" list-id "/interest-categories/" (:id category) "/interests")
+                          :interests
+                          {}))])))
 
 (defn parse-contact [type-names contact]
   {:email (:email_address contact)
@@ -43,9 +62,35 @@
                       set)})
 
 (defn contacts [{:keys [list-id] :as config}]
-  (let [type-names (member-type-ids config)]
+  (let [type-names (into {} (map (fn [[type-name id]] [id type-name]))
+                         (get (interest-ids config) member-type-category))]
     (->> (get-all config
                   (str "/lists/" list-id "/members")
                   :members
                   {:fields "members.email_address,members.status,members.merge_fields,members.tags,members.interests,total_items"})
          (mapv #(parse-contact type-names %)))))
+
+(defn create-contact! [{:keys [list-id] :as config} interests {:keys [contact status merge-fields tags member-type]}]
+  (send-json config :post (str "/lists/" list-id "/members")
+             {:email_address contact
+              :status status
+              :merge_fields merge-fields
+              :tags (vec tags)
+              :interests (-> (zipmap (vals (get interests email-types-category)) (repeat true))
+                             (assoc (get-in interests [member-type-category member-type]) true))}))
+
+(defn set-tag! [config email tag active?]
+  (send-json config :post (str (member-path config email) "/tags")
+             {:tags [{:name tag :status (if active? "active" "inactive")}]}))
+
+(defn set-merge-field! [config email field value]
+  (send-json config :patch (member-path config email) {:merge_fields {field value}}))
+
+(defn set-member-type! [config interests email member-type]
+  (send-json config :patch (member-path config email)
+             {:interests (into {}
+                               (map (fn [[type-name id]] [id (= type-name member-type)]))
+                               (get interests member-type-category))}))
+
+(defn set-email! [config email new-email]
+  (send-json config :patch (member-path config email) {:email_address new-email}))
