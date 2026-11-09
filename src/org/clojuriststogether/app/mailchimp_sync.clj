@@ -162,10 +162,11 @@
 
 (defn- create-op
   "Creating a contact sends it a welcome email, which holds even when a member's Member Type is
-  set afterwards, so a possible duplicate waits for a person."
+  set afterwards, so a member with no contact but a possible duplicate waits for a person."
   [member orphans replaces]
   (let [aliases (possible-aliases member orphans)]
-    (op member :create-contact (if (seq aliases) :review :apply) {:email (first (app-addresses member))}
+    (op member :create-contact (if (and (seq aliases) (not replaces)) :review :apply)
+        {:email (first (app-addresses member))}
         (cond-> {:status "subscribed"
                  :tags #{member-tag}
                  :email-types :all

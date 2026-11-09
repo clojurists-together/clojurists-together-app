@@ -254,3 +254,10 @@
       (is (= "No members with a plan" (sync/unsafe-reason [(assoc member :subscription_plan nil)] []))))
     (testing "an ordinary run goes ahead"
       (is (nil? (sync/unsafe-reason [member] (sync/plan [member] [contact])))))))
+
+(deftest replacing-a-contact-is-not-held-for-a-possible-duplicate
+  (let [app (assoc member :email "new@example.com")
+        alias-contact (assoc contact :email "alias@example.com" :merge-fields {"FULLNAME" "Ada Lovelace"})
+        ops (sync/plan [app] [(assoc contact :status "cleaned") alias-contact])
+        create (first (filter #(= :create-contact (:op %)) ops))]
+    (is (= [:apply "ada@example.com"] ((juxt :disposition :replaces) create)))))
