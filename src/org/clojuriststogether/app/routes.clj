@@ -5,6 +5,7 @@
             [org.clojuriststogether.app.utils :as utils]
             [org.clojuriststogether.app.pages.auth :as pages.auth]
             [org.clojuriststogether.app.pages.member-list :as pages.member-list]
+            [org.clojuriststogether.app.pages.cashflow :as pages.cashflow]
             [org.clojuriststogether.app.webhooks :as webhooks]
             [org.clojuriststogether.app.middleware :as app.middleware]
             [sentry-clj.ring]
@@ -64,7 +65,8 @@
                  ["/" {:name :home
                        :get {:handler (fn [req] (response/found (utils/login-path req)))}}]
                  (pages.auth/auth-routes stripe db email-service)
-                 (pages.member-list/member-list-routes db stripe)]
+                 (pages.member-list/member-list-routes db stripe)
+                 (pages.cashflow/routes db)]
                 ;; TODO: middleware for Stripe
                 ["" {:middleware [:exception
                                   :format-response
