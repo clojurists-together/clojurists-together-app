@@ -25,7 +25,6 @@
                                 :content [{:type (or (:content-type email) "text/plain")
                                            :value (:body email)}]}})))
 
-
 (defmethod ig/init-key ::sendgrid [_ config]
   (map->SendgridEmailService config))
 
@@ -45,7 +44,6 @@
   EmailService
   (-send [_ email]
     (prn "SENT:" email)))
-
 
 (defmethod ig/init-key ::logging [_ config]
   (map->LoggingEmailService config))
