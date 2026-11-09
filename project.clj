@@ -16,7 +16,7 @@
                  [aero "1.1.6"]
                  [cheshire "6.2.1"]
                  [org.postgresql/postgresql "42.7.14"]
-                 [honeysql "1.0.461"]
+                 [com.github.seancorfield/honeysql "2.8.85"]
                  [io.sentry/sentry-clj "8.34.247"]
                  [clj-http "3.13.1"]
                  ;; Logging

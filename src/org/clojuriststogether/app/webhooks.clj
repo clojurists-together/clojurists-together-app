@@ -3,7 +3,7 @@
             [clojure.java.jdbc :as jdbc]
             [cheshire.core :as json]
             [clojure.string :as str]
-            [honeysql.core :as sql])
+            [honey.sql :as sql])
   (:import (com.stripe.net Webhook)))
 
 (defn handle-subscription-event [db payload]
@@ -18,6 +18,9 @@
         plan-id (if (= webhook-type "customer.subscription.deleted")
                   nil
                   (get-in object [:plan :id]))]
+    ;; HoneySQL formats collections as SQL, so {"raw": "..."} in a payload would run unescaped.
+    (when (or (coll? customer-id) (coll? plan-id))
+      (throw (ex-info "Stripe webhook customer and plan ids must be scalars" {:webhook-type webhook-type})))
     (->> {:update :members
           :set {:subscription_plan plan-id}
           :where [:= :stripe_customer_id customer-id]}

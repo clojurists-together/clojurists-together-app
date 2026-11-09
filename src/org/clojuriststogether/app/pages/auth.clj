@@ -5,7 +5,7 @@
             [org.clojuriststogether.app.utils :as utils]
             [org.clojuriststogether.app.spec :as specs]
             [org.clojuriststogether.app.email :as email]
-            [honeysql.core :as sql]
+            [honey.sql :as sql]
             [spec-tools.data-spec :as ds]
             [clojure.string :as str]
             [clojure.java.jdbc :as jdbc]
