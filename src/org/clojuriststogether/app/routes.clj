@@ -7,7 +7,6 @@
             [org.clojuriststogether.app.pages.member-list :as pages.member-list]
             [org.clojuriststogether.app.webhooks :as webhooks]
             [org.clojuriststogether.app.middleware :as app.middleware]
-            [sentry-clj.ring]
             [reitit.ring.middleware.muuntaja :as muuntaja]
 
             [reitit.ring.middleware.dev :as dev]
