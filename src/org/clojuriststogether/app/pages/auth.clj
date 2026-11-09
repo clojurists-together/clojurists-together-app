@@ -213,31 +213,6 @@
    [:h2.text-base.font-semibold.text-gray-900 title]
    (when description [:p.text-sm.text-gray-600 description])])
 
-(defn detail-row [label value]
-  [:div.py-3.sm:grid.sm:grid-cols-3.sm:gap-4
-   [:dt.text-sm.text-gray-600 label]
-   [:dd.text-gray-900.sm:col-span-2.break-words value]])
-
-(defn email-or-primary
-  "Optional contact emails fall back to the member's primary email."
-  [email primary-email]
-  (if (str/blank? email)
-    (list primary-email [:span.text-sm.text-gray-600 " (primary contact)"])
-    email))
-
-(defn organization-details [member]
-  (list
-   [:h2 {:class section-heading-class} "Organization"]
-   [:div {:class (str card-class " px-6 py-2")}
-    [:p {:class (str eyebrow-class " pt-3")} "Details"]
-    [:dl.divide-y.divide-gray-200
-     (detail-row "Name" (:organization_name member))
-     (detail-row "Website" [:a {:class link-blue :href (:organization_url member)} (:organization_url member)])]
-    [:p {:class (str eyebrow-class " pt-4 mt-2 border-t border-gray-200")} "Contact emails"]
-    [:dl.divide-y.divide-gray-200
-     (detail-row "Invoices" (email-or-primary (:invoicing_email member) (:email member)))
-     (detail-row "News and surveys" (email-or-primary (:updates_email member) (:email member)))]]))
-
 (defn current-plan [subscription-plan]
   (if subscription-plan
     (let [plan (retrieve-plan-memo subscription-plan)
@@ -256,6 +231,41 @@
    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
     {:name "email" :type "email" :placeholder sample-email :required true
      :value value}]])
+
+(defn organization-inputs [member]
+  (list
+   [:div.mb-4
+    [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-name"} "Organization Name"]
+    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+     {:name "org-name" :type "text" :placeholder "Acme" :autocomplete "organization" :required true
+      :value (:organization_name member)}]]
+   [:div.mb-4
+    [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-url"} "URL"]
+    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+     {:name "org-url" :type "url" :placeholder "https://www.acme.com" :required true
+      :value (:organization_url member)}]]))
+
+(defn contact-email-inputs [member]
+  (list
+   [:div.mb-4
+    [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "invoicing-email"} "Invoicing Email"
+     [:span.text-gray-600.text-sm.ml-2 "Optional"]]
+    [:p.text-gray-700.text-sm.mb-1 "Where we send invoices."]
+    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+     {:name "invoicing-email" :type "email" :placeholder "accounts@acme.com"
+      :value (:invoicing_email member)}]]
+   [:div.mb-4
+    [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "updates-email"} "News and Surveys email"
+     [:span.text-gray-600.text-sm.ml-2 "Optional"]]
+    [:p.text-gray-700.text-sm.mb-1 "Where we send news updates and surveys."]
+    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+     {:name "updates-email" :type "email" :placeholder "dev-team@acme.com"
+      :value (:updates_email member)}]]))
+
+(def optional-email (s/or :empty str/blank? :email ::specs/email))
+
+(defn blank->nil [s]
+  (when-not (str/blank? s) s))
 
 (defn auth-routes [stripe db email-service]
   [["/login" {:name :login
@@ -352,12 +362,17 @@
                                                           (full-name-input (:person_name member))
                                                           (email-input (:email member))
 
+                                                          (when (= "company" (:member_type member))
+                                                            [:div.border-t.border-gray-200.pt-6.mt-6
+                                                             (form-section-heading "Organization" nil)
+                                                             (organization-inputs member)])
+                                                          [:div.border-t.border-gray-200.pt-6.mt-6
+                                                           (form-section-heading "Contact emails" "Optional. If left blank, these go to your email address above.")
+                                                           (contact-email-inputs member)]
+
                                                           (anti-forgery/anti-forgery-field)
                                                           [:div.flex.items-center.justify-between
                                                            [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Update Details"]]]
-
-                                                         (when (= "company" (:member_type member))
-                                                           (organization-details member))
 
                                                          [:h2 {:class section-heading-class} "Billing"]
                                                          [:div {:class (str card-class " px-6 py-4")}
@@ -374,18 +389,32 @@
                                       (response/ok)
                                       (response/content-type "text/html"))
                                   (response/found (utils/login-path req))))}
-               :post {:handler (fn [req]
+               :post {:parameters {:form {:name string?
+                                          :email ::specs/email
+                                          (ds/opt :org-name) string?
+                                          (ds/opt :org-url) string?
+                                          (ds/opt :invoicing-email) optional-email
+                                          (ds/opt :updates-email) optional-email}}
+                      :handler (fn [req]
                                  (if-let [member (some->> (sessions/member-id req)
                                                           (get-member db))]
-                                   (let [{:strs [preferred-name name email]} (get req :form-params)]
+                                   (let [{:strs [preferred-name name email org-name org-url invoicing-email updates-email]}
+                                         (get req :form-params)
+                                         email-owner (member-by-email db email)]
+                                     (when (and email-owner (not= (:id email-owner) (:id member)))
+                                       (throw (already-a-member-ex email)))
                                      (->> {:update :members
-                                           :set {:preferred_name preferred-name
-                                                 :person_name name
-                                                 :email email}
+                                           :set (cond-> {:preferred_name preferred-name
+                                                         :person_name name
+                                                         :email email
+                                                         :invoicing_email (blank->nil invoicing-email)
+                                                         :updates_email (blank->nil updates-email)}
+                                                  (= "company" (:member_type member))
+                                                  (assoc :organization_name org-name
+                                                         :organization_url org-url))
                                            :where [:= :id (:id member)]}
                                           sql/format
                                           (jdbc/execute! db))
-                                     (println (get-in req [:form-params]))
                                      (-> (response/found "/manage")
                                          (response/content-type "text/html")))
                                    (response/found (utils/login-path req))))}}]
@@ -490,28 +519,10 @@
                      (email-input nil)
                      [:div.border-t.border-gray-200.pt-6.mt-6
                       (form-section-heading "Organization" nil)]
-                     [:div.mb-4
-                      [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-name"} "Organization Name"]
-                      [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                       {:name "org-name" :type "text" :placeholder "Acme" :autocomplete "organization" :required true}]]
-                     [:div.mb-4
-                      [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-url"} "URL"]
-                      [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                       {:name "org-url" :type "url" :placeholder "https://www.acme.com" :required true}]]
+                     (organization-inputs nil)
                      [:div.border-t.border-gray-200.pt-6.mt-6
                       (form-section-heading "Contact emails" "Optional. If left blank, these go to the primary contact.")]
-                     [:div.mb-4
-                      [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "invoicing-email"} "Invoicing Email"
-                       [:span.text-gray-600.text-sm.ml-2 "Optional"]]
-                      [:p.text-gray-700.text-sm.mb-1 "Where we send invoices."]
-                      [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                       {:name "invoicing-email" :type "email" :placeholder "accounts@acme.com"}]]
-                     [:div.mb-4
-                      [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "updates-email"} "News and Surveys email"
-                       [:span.text-gray-600.text-sm.ml-2 "Optional"]]
-                      [:p.text-gray-700.text-sm.mb-1 "Where we send news updates and surveys."]
-                      [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                       {:name "updates-email" :type "email" :placeholder "dev-team@acme.com"}]]
+                     (contact-email-inputs nil)
                      [:input {:type "hidden" :name "plan" :value plan-id}]
                      (anti-forgery/anti-forgery-field)
                      (selected-plan-summary plan product)
@@ -525,10 +536,8 @@
                     :org-name string?
                     :org-url string?
                     :plan ::specs/plan-id
-                    (ds/opt :invoicing-email) (s/or :empty str/blank?
-                                                    :email ::specs/email)
-                    (ds/opt :updates-email) (s/or :empty str/blank?
-                                                  :email ::specs/email)}}
+                    (ds/opt :invoicing-email) optional-email
+                    (ds/opt :updates-email) optional-email}}
             :handler
             (fn [req]
               ;; TODO: use a transaction!!
