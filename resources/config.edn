@@ -2,6 +2,7 @@
              :join? false
              :handler #ig/ref :app/handler}
  :app/handler {:stripe #ig/ref :org.clojuriststogether.app.stripe/stripe
+               :stripe-webhook-secret #env "STRIPE_WEBHOOK_SECRET"
                :db #ig/ref :org.clojuriststogether.app.db/hikari-cp
                :store #ig/ref :app/session-store
                :email-service #ig/ref :org.clojuriststogether.app.email/email-service
