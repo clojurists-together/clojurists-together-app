@@ -32,7 +32,7 @@ on every request and disable caching. Signup and account updates cannot set role
 ### Cloudflare Access setup
 
 Production also requires a valid Cloudflare Access application JWT on both admin
-routes. Access adds a separate Google sign-in; it does not create a member session.
+routes. Access adds a separate email one-time code check; it does not create a member session.
 Admins still use the existing email-link login and must have `members.is_admin = TRUE`.
 The Access identity and member session are checked independently. Public member
 routes and Stripe webhooks keep their existing authentication.
@@ -43,14 +43,11 @@ Configure this externally before enabling the admin pages in production:
    self-hosted Access application for `members.clojuriststogether.org/admin/*`.
    This path covers both `/admin/cashflow` and `/admin/cashflow.xlsx`. If a bare
    `/admin` route is added later, protect that path separately too.
-2. Configure the [Google identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/google/)
-   with a Google OAuth Web client. Its authorized JavaScript origin is
-   `https://TEAM.cloudflareaccess.com`; its callback is
-   `https://TEAM.cloudflareaccess.com/cdn-cgi/access/callback`. Put the Google
-   client ID and client secret in the Cloudflare dashboard; the app does not need
-   the Google client secret.
-3. Select only Google for this Access application. Disable **Accept all available
-   identity providers** and exclude One-time PIN and all other login methods.
+2. Configure the [One-time PIN identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/).
+   Cloudflare emails a single-use code to approved addresses; no Google OAuth
+   client or client secret is needed.
+3. Select only One-time PIN for this Access application. Disable **Accept all
+   available identity providers** and use a 24-hour session duration.
 4. Create an Allow policy with an **Include → Emails** rule containing exactly
    `daniel@clojuriststogether.org` and `kdavis@clojuriststogether.org`.
    Do not use Everyone, an entire email domain, Bypass, or service-token policies
@@ -59,8 +56,8 @@ Configure this externally before enabling the admin pages in production:
    environment:
 
    ```
-   CLOUDFLARE_ACCESS_ISSUER=https://TEAM.cloudflareaccess.com
-   CLOUDFLARE_ACCESS_AUDIENCE=APPLICATION_AUD_TAG
+   CLOUDFLARE_ACCESS_ISSUER=https://clojurists-together.cloudflareaccess.com
+   CLOUDFLARE_ACCESS_AUDIENCE=46e0a7ed0bd5c26add42c8341362999a156e7b4038b997c517146352bddf5cb3
    ```
 
 The issuer and audience are identifiers, not secrets. The issuer must be an HTTPS
@@ -80,10 +77,10 @@ omit both settings. Supplying both settings enforces Access locally too; partial
 local configuration is rejected. The local read-only cashflow preview launcher
 remains separate and does not use these production authentication gates.
 
-These instructions do not configure Cloudflare or Google, set production
-environment variables, or deploy the app. The actual team origin and application
-AUD tag must still be supplied during external setup; use the two email addresses
-above for the allowlist.
+Cloudflare's email-code provider, application, and two-address allow policy are
+configured in the Clojurists Together account. The member hostname is proxied.
+Production environment variables and deployment of this app change are still
+required to enforce JWT validation at the origin.
 
 The default view covers January of this year through December of next year.
 Completed months contain actual subscription payments less recorded Stripe fees.
