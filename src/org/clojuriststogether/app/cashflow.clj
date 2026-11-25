@@ -60,7 +60,7 @@
     (if (or (zero? n) (#{"day" "week"} (:interval p)))
       date
       (.withDayOfMonth date (min (.getDayOfMonth anchor)
-                                (.lengthOfMonth (YearMonth/from date)))))))
+                                 (.lengthOfMonth (YearMonth/from date)))))))
 
 (defn charge [s date]
   (let [gross (reduce + (map #(* (get-in % [:plan :amount]) (or (:quantity %) 1))
@@ -83,7 +83,7 @@
         intervals (set (map #(select-keys % [:interval :interval_count :currency]) plans))
         divisor (when (pos? (or (:interval_count p) 0))
                   (some-> (case (:interval p) "month" 1M "year" 12M
-                            "week" (/ 84.0 365.2425) "day" (/ 12.0 365.2425) nil)
+                                "week" (/ 84.0 365.2425) "day" (/ 12.0 365.2425) nil)
                           (* (:interval_count p))))]
     (when (and (= 1 (count intervals)) divisor
                (every? #(and (number? (:amount %)) (not= "metered" (:usage_type %))) plans)
@@ -122,9 +122,9 @@
 
 (defn fee-models [history]
   (into {} (for [[key payments] (group-by (juxt :customer :currency)
-                                         (filter #(and (pos? (or (:gross %) 0))
-                                                       (number? (:fee %)) (not (neg? (:fee %)))
-                                                       (= (:currency %) (:charge-currency %))) history))]
+                                          (filter #(and (pos? (or (:gross %) 0))
+                                                        (number? (:fee %)) (not (neg? (:fee %)))
+                                                        (= (:currency %) (:charge-currency %))) history))]
              [key (vec (take 3 (sort-by :created > payments)))])))
 
 (defn estimated-fee [s currency gross opts]
@@ -137,7 +137,7 @@
       (seq matching) (rounded-divide (reduce + (map :fee matching)) (count matching))
       (seq samples) (rounded-divide (* gross (reduce + (map :fee samples))) (reduce + (map :gross samples)))
       :else (long (Math/round (double (+ (* gross (/ (or (:fee-percent opts) 0M) 100M))
-                                        (/ (or (:fee-fixed opts) 0M) (major currency 1)))))))))
+                                         (/ (or (:fee-fixed opts) 0M) (major currency 1)))))))))
 
 (defn receipts [s months cancel-month opts]
   (let [end (.atStartOfDay (.atDay (.plusMonths ^YearMonth (last months) 1) 1) ZoneOffset/UTC)
@@ -164,39 +164,39 @@
   ([members subscriptions start horizon cancellations]
    (forecast members subscriptions start horizon cancellations {}))
   ([members subscriptions start horizon cancellations opts]
-  (let [months (mapv #(.plusMonths ^YearMonth start %) (range horizon))
-        by-customer (group-by :stripe_customer_id members)
-        classified (mapv (fn [s]
-                           (let [matches (get by-customer (:customer s))
-                                 member (first matches)]
-                             {:subscription s :member member
-                              :reason (or (when (not= 1 (count matches)) "customer has no unique member match")
-                                          (when-not (#{"developer" "company"} (:member_type member)) "unknown member type")
-                                          (unsupported s))})) subscriptions)
-        mrr (into {} (for [[key items] (group-by (fn [{:keys [subscription member]}]
-                                                  [(:id member) (get-in subscription [:items :data 0 :plan :currency])])
-                                                (filter :member classified))
-                           :let [amounts (map #(some-> (monthly-amount (:subscription %) (or (:as-of opts) (Instant/now))) :amount) items)]]
-                       [key (when (every? some? amounts) (reduce + amounts))]))
-        usable (remove :reason classified)
-        rows (for [[[member currency] items]
-                   (sort-by (fn [[[m c] _]] [c (or (:organization_name m) (:person_name m)) (:id m)])
-                            (group-by (fn [{:keys [subscription member]}]
-                                        [member (get-in subscription [:items :data 0 :plan :currency])]) usable))]
-               {:id (:id member) :type (:member_type member) :currency currency :customer (:stripe_customer_id member)
-                :name (if (= "company" (:member_type member))
-                        (or (not-empty (:organization_name member)) (:person_name member)) (:person_name member))
-                :mrr (get mrr [(:id member) currency] 0)
-                :cancel-month (get cancellations (:id member))
-                :baseline (apply mapv + (map #(receipts (:subscription %) months nil opts) items))
-                :values (apply mapv + (map #(receipts (:subscription %) months (get cancellations (:id member)) opts) items))})
-        mask-past (fn [values] (mapv (fn [month value]
-                                      (when-not (and (:as-of opts) (.isBefore ^YearMonth month (YearMonth/from (.atZone ^Instant (:as-of opts) ZoneOffset/UTC)))) value)) months values))]
-    {:months months :options opts :mrr mrr
-     :rows (mapv #(-> % (update :baseline mask-past) (update :values mask-past)) rows)
-     :warnings (mapv (fn [{:keys [subscription member reason]}]
-                       (warning subscription member reason (or (:as-of opts) (Instant/now))))
-                     (filter :reason classified))})))
+   (let [months (mapv #(.plusMonths ^YearMonth start %) (range horizon))
+         by-customer (group-by :stripe_customer_id members)
+         classified (mapv (fn [s]
+                            (let [matches (get by-customer (:customer s))
+                                  member (first matches)]
+                              {:subscription s :member member
+                               :reason (or (when (not= 1 (count matches)) "customer has no unique member match")
+                                           (when-not (#{"developer" "company"} (:member_type member)) "unknown member type")
+                                           (unsupported s))})) subscriptions)
+         mrr (into {} (for [[key items] (group-by (fn [{:keys [subscription member]}]
+                                                    [(:id member) (get-in subscription [:items :data 0 :plan :currency])])
+                                                  (filter :member classified))
+                            :let [amounts (map #(some-> (monthly-amount (:subscription %) (or (:as-of opts) (Instant/now))) :amount) items)]]
+                        [key (when (every? some? amounts) (reduce + amounts))]))
+         usable (remove :reason classified)
+         rows (for [[[member currency] items]
+                    (sort-by (fn [[[m c] _]] [c (or (:organization_name m) (:person_name m)) (:id m)])
+                             (group-by (fn [{:keys [subscription member]}]
+                                         [member (get-in subscription [:items :data 0 :plan :currency])]) usable))]
+                {:id (:id member) :type (:member_type member) :currency currency :customer (:stripe_customer_id member)
+                 :name (if (= "company" (:member_type member))
+                         (or (not-empty (:organization_name member)) (:person_name member)) (:person_name member))
+                 :mrr (get mrr [(:id member) currency] 0)
+                 :cancel-month (get cancellations (:id member))
+                 :baseline (apply mapv + (map #(receipts (:subscription %) months nil opts) items))
+                 :values (apply mapv + (map #(receipts (:subscription %) months (get cancellations (:id member)) opts) items))})
+         mask-past (fn [values] (mapv (fn [month value]
+                                        (when-not (and (:as-of opts) (.isBefore ^YearMonth month (YearMonth/from (.atZone ^Instant (:as-of opts) ZoneOffset/UTC)))) value)) months values))]
+     {:months months :options opts :mrr mrr
+      :rows (mapv #(-> % (update :baseline mask-past) (update :values mask-past)) rows)
+      :warnings (mapv (fn [{:keys [subscription member reason]}]
+                        (warning subscription member reason (or (:as-of opts) (Instant/now))))
+                      (filter :reason classified))})))
 
 (defn month-kind [forecast month]
   (if-let [now (get-in forecast [:options :as-of])]
@@ -227,7 +227,7 @@
                              merge-values (fn [values]
                                             (mapv (fn [month actual projected]
                                                     (if (= "Actual" (month-kind forecast month)) actual
-                                                      (+ actual (or projected 0)))) months actuals (or values zeros)))]
+                                                        (+ actual (or projected 0)))) months actuals (or values zeros)))]
                          (-> row (assoc :actuals actuals :mrr (get (:mrr forecast) [(:id row) (:currency row)] 0))
                              (update :baseline merge-values) (update :values merge-values)))))
                 (sort-by (juxt :currency :name)) vec))))

@@ -2,6 +2,7 @@
 
 ```console
 bin/init-dev-db
+bin/install-git-hooks
 lein migrate
 ```
 
@@ -11,8 +12,8 @@ Setup a `.envrc` file with the following info:
 SENDGRID_API_KEY=
 SESSION_COOKIE_KEY=
 JDBC_DATABASE_URL= # If you want to use a different dev db to the default set in config.edn
-STRIPE_PUBLISHABLE_KEY=
 STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
 ```
 
 ## Admin cashflow forecast
@@ -35,6 +36,10 @@ subsequent months forecast renewals. Columns are labelled Actual or Forecast in
 the app and Excel. Live Stripe subscription data supplies amounts, quantities, billing dates, trials,
 discounts and scheduled cancellations. Annual charges appear in renewal months.
 The forecast uses UTC and assumes successful payment. Currencies are kept separate.
+The sticky company column shows current MRR, rounded to the nearest dollar, after
+recurring discounts and before fees. Cancellation scenarios leave this reference unchanged.
+Forecast reads use Stripe API version `2020-08-27` so subscription and invoice fields
+remain stable across Stripe Java SDK upgrades.
 Historical receipts include payments for subscriptions that have since cancelled.
 Payments with no unique member match are included under Other subscription receipts.
 Actuals use the balance transaction's net amount and settlement currency, dated by
@@ -118,3 +123,31 @@ Stripe schedules are expanded with subscriptions. A subscription in the last act
 phase of a release schedule is forecast normally when the schedule ends at or before
 the next renewal. Earlier phases are historical; they do not justify excluding future
 renewals. Schedules that cancel, have future phases, or are not expanded remain excluded.
+
+## Mailchimp sync dry run
+
+Prints what a Mailchimp and Stripe sync would change, and previews the notice emails. It reads the members table in a read-only transaction, only sends `GET` requests, and can't apply or send anything.
+
+```console
+lein run -m org.clojuriststogether.app.admin.mailchimp-dry-run [details-file]
+```
+
+It needs `MAILCHIMP_API_KEY`, `MAILCHIMP_LIST_ID` and either `MAILCHIMP_SYNC_JDBC_URL` or `JDBC_DATABASE_URL`. To read production from your machine, use `MAILCHIMP_SYNC_JDBC_URL`, not `JDBC_DATABASE_URL`, so nothing else picks up the production database. Set `STRIPE_READ_KEY` to a live key that can read customers to include the Stripe report. The summary has no personal details, but the details file has names and addresses, so keep it out of the repo.
+
+## Mailchimp sync
+
+Brings Mailchimp in line with the app. Run the dry run first, because this one changes things.
+
+```console
+lein run -m org.clojuriststogether.app.admin.mailchimp-apply
+```
+
+`--send-notices` also emails members whose mailing address changed, and needs `SENDGRID_API_KEY`. `--stripe` also updates Stripe customer emails to the app's billing email, and needs `STRIPE_SECRET_KEY`. The run stops before changing anything if there are no members with a plan, or if it would remove the `Member` tag more than 25 times. A failed change is logged and retried on the next run.
+
+## Testing webhooks
+
+`/webhook/stripe` only accepts requests signed with `STRIPE_WEBHOOK_SECRET`. To send the sample event, signed with the same secret the server is running with:
+
+```console
+bin/send-test-webhook
+```

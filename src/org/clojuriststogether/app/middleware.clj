@@ -1,17 +1,22 @@
 (ns org.clojuriststogether.app.middleware
   (:require [reitit.ring.middleware.exception :as exception]
             [reitit.coercion :as coercion]
-            [sentry-clj.ring :as sentry.ring]
             [ring.util.http-response :as http-response]
+            [ring.util.request :as request]
             [clojure.tools.logging :as log]
             [sentry-clj.core :as sentry]))
 
-(def version (delay (System/getenv "HEROKU_SLUG_COMMIT")))
-
 (defn report-to-sentry [e req]
-  (-> (sentry.ring/request->event req e)
-      (assoc :release @version)
-      (sentry/send-event)))
+  (sentry/send-event
+   {:throwable e
+    :request {:url (request/request-url req)
+              :method (name (:request-method req))
+              :data (:params req)
+              :query-string (:query-string req "")
+              :headers (:headers req)
+              :env {:session (pr-str (:session req))
+                    "REMOTE_ADDR" (:remote-addr req)}}
+    :user {:ip-address (:remote-addr req)}}))
 
 (defn default-unhandled-exception [e req]
   (report-to-sentry e req)

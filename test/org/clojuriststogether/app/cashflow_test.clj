@@ -22,7 +22,7 @@
    :current_period_end (epoch "2026-01-31T12:00:00Z")
    :billing_cycle_anchor (epoch "2025-12-31T12:00:00Z")
    :items {:data [{:quantity 2 :plan {:amount 1000 :currency "usd" :interval "month"
-                                     :interval_count 1 :usage_type "licensed" :billing_scheme "per_unit"}}]}})
+                                      :interval_count 1 :usage_type "licensed" :billing_scheme "per_unit"}}]}})
 
 (defn values-for [s & [cancellations opts]]
   (-> (cf/forecast [member] [s] (YearMonth/of 2026 1) 24 (or cancellations {}) (or opts {})) :rows first :values))
@@ -93,7 +93,7 @@
 (deftest routed-page-and-export
   (let [current (atom (assoc member :is_admin true))
         handler (ig/init-key :app/handler {:profile :test :db {} :stripe {}
-                                          :store (memory/memory-store (atom {"session" {:member-id 1}}))})]
+                                           :store (memory/memory-store (atom {"session" {:member-id 1}}))})]
     (with-redefs [auth/get-member (fn [& _] @current)
                   jdbc/query (fn [& _] [member])
                   stripe/subscriptions (fn [] [subscription])
@@ -146,7 +146,7 @@
     (is (nil? (stripe/charge-receipt (assoc charge :paid false))))
     (is (nil? (stripe/charge-receipt (assoc charge :invoice nil))))
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #"no recorded Stripe fee"
-                         (stripe/charge-receipt (assoc charge :balance_transaction nil))))))
+                          (stripe/charge-receipt (assoc charge :balance_transaction nil))))))
 
 (deftest named-linked-subscription-warnings
   (let [s (-> subscription
@@ -168,8 +168,8 @@
 (deftest member-fee-estimates
   (let [payment (fn [created gross fee] {:customer "cus_1" :created created :gross gross :fee fee :currency "usd" :charge-currency "usd"})
         models (cf/fee-models [(payment 1 2000 150) (payment 2 2000 60)
-                              (payment 3 2000 70) (payment 4 4000 100)
-                              (assoc (payment 5 2000 90) :charge-currency "eur")])
+                               (payment 3 2000 70) (payment 4 4000 100)
+                               (assoc (payment 5 2000 90) :charge-currency "eur")])
         opts {:fee-models models :fee-percent 5M :fee-fixed 0.30M}]
     (is (= 3 (count (get models ["cus_1" "usd"]))))
     (is (= 65 (cf/estimated-fee subscription "usd" 2000 opts)))
@@ -232,9 +232,9 @@
     (is (= (values-for subscription) (values-for s)))
     (is (= "2026-01-31" (:due (cf/billing-details s (Instant/parse "2026-01-01T00:00:00Z")))))
     (is (empty? (:rows (cf/forecast [member] [(assoc-in s [:schedule :end_behavior] "cancel")]
-                                          (YearMonth/of 2026 1) 12 {}))))
+                                    (YearMonth/of 2026 1) 12 {}))))
     (is (empty? (:rows (cf/forecast [member] [(update-in s [:schedule :phases] conj {:start_date end :end_date (+ end 1000)})]
-                                          (YearMonth/of 2026 1) 12 {}))))
+                                    (YearMonth/of 2026 1) 12 {}))))
     (is (= [2000 0 0] (take 3 (values-for s {1 (YearMonth/of 2026 2)}))))))
 
 (deftest member-monthly-recurring-revenue
@@ -246,8 +246,8 @@
     (is (= 52000M (:mrr (first (:rows f)))))
     (is (= "$520 MRR" (page/mrr-label "usd" (:mrr (first (:rows f))))))
     (is (= 39000M (:mrr (first (:rows (cf/forecast [member]
-                                     (map #(assoc % :discount {:coupon {:duration "forever" :percent_off 25}}) [annual subscription])
-                                     (YearMonth/of 2026 1) 24 {})))))))
+                                                   (map #(assoc % :discount {:coupon {:duration "forever" :percent_off 25}}) [annual subscription])
+                                                   (YearMonth/of 2026 1) 24 {})))))))
   (is (= "$501 MRR" (page/mrr-label "usd" 50050M)))
   (is (= "$0 MRR" (page/mrr-label "usd" 0)))
   (is (= "MRR unavailable" (page/mrr-label "usd" nil)))

@@ -1,8 +1,10 @@
 (ns org.clojuriststogether.app.stripe
   (:require [integrant.core :as ig]
-            [cheshire.core :as json])
+            [cheshire.core :as json]
+            [clj-http.client :as http])
   (:import (com.stripe Stripe)
-           (com.stripe.model Subscription SubscriptionItem Charge)
+           (com.stripe.model Customer)
+           (com.stripe.net RequestOptions)
            (java.time Instant YearMonth ZoneOffset)))
 
 (defn customer-id [customer]
@@ -11,20 +13,35 @@
 (defn customer-name [customer]
   (when (map? customer) (or (not-empty (:name customer)) (not-empty (:email customer)))))
 
+(defn forecast-request [path params]
+  (try
+    (let [response (http/get (str "https://api.stripe.com/v1/" path)
+                             {:headers {"Authorization" (str "Bearer " Stripe/apiKey)
+                                        "Stripe-Version" "2020-08-27"}
+                              :query-params params :throw-exceptions false
+                              :conn-timeout 15000 :socket-timeout 30000})]
+      (when-not (= 200 (:status response))
+        (throw (ex-info "Stripe could not be loaded. Please retry." {:type ::unavailable})))
+      (json/parse-string (:body response) true))
+    (catch Exception _
+      (throw (ex-info "Stripe could not be loaded. Please retry." {:type ::unavailable})))))
+
+(defn forecast-list [path params]
+  (loop [params (assoc params "limit" 100) result []]
+    (let [{:keys [data has_more]} (forecast-request path params)]
+      (if (and has_more (seq data))
+        (recur (assoc params "starting_after" (:id (last data))) (into result data))
+        (into result data)))))
+
 (defn subscriptions []
-  ;; The SDK pins the API version and auto-pages both subscriptions and items.
-  (mapv (fn [^Subscription subscription]
-          (let [s (json/parse-string (.toJson subscription) true)]
+  (mapv (fn [s]
           (assoc-in (assoc s :customer (customer-id (:customer s))
-                            :customer-name (customer-name (:customer s))) [:items :data]
-                    (mapv #(json/parse-string (.toJson %) true)
-                          (if (.getHasMore (.getItems subscription))
-                            (.autoPagingIterable
-                              (SubscriptionItem/list
-                                {"subscription" (.getId subscription) "limit" 100}))
-                            (.getData (.getItems subscription)))))))
-        (remove #(#{"canceled" "incomplete_expired"} (.getStatus ^Subscription %))
-                (.autoPagingIterable (Subscription/list {"status" "all" "limit" 100 "expand" ["data.customer" "data.latest_invoice" "data.schedule"]})))))
+                           :customer-name (customer-name (:customer s))) [:items :data]
+                    (if (get-in s [:items :has_more])
+                      (forecast-list "subscription_items" {"subscription" (:id s)})
+                      (get-in s [:items :data]))))
+        (remove #(#{"canceled" "incomplete_expired"} (:status %))
+                (forecast-list "subscriptions" {"status" "all" "expand[]" ["data.customer" "data.latest_invoice" "data.schedule"]}))))
 
 (defn charge-receipt [charge]
   ;; Include receipts from subscriptions that have since been cancelled, and from
@@ -43,11 +60,9 @@
 (defn actual-receipts [^YearMonth start ^Instant now]
   (let [since (.toEpochSecond (.atStartOfDay (.atDay start 1) ZoneOffset/UTC))]
     (if (>= since (.getEpochSecond now)) []
-      (into [] (keep #(charge-receipt (json/parse-string (.toJson %) true)))
-            (.autoPagingIterable
-              (Charge/list {"created" {"gte" since "lt" (.getEpochSecond now)}
-                            "limit" 100
-                            "expand" ["data.invoice" "data.balance_transaction" "data.customer"]}))))))
+        (into [] (keep charge-receipt)
+              (forecast-list "charges" {"created[gte]" since "created[lt]" (.getEpochSecond now)
+                                        "expand[]" ["data.invoice" "data.balance_transaction" "data.customer"]})))))
 
 (defonce ^:private snapshot-cache (atom nil))
 
@@ -78,7 +93,24 @@
           data)))))
 
 (defmethod ig/init-key ::stripe
-  [_ {:keys [publishable-key secret-key]}]
-
+  [_ {:keys [secret-key]}]
   (set! Stripe/apiKey secret-key)
-  {:publishable-key publishable-key})
+  nil)
+
+(defn- request-options [api-key]
+  (-> (RequestOptions/builder) (.setApiKey api-key) .build))
+
+(defn customers
+  "Every customer's id and email, using the given key rather than the app's own."
+  [api-key]
+  (let [^java.util.Map params {"limit" 100}]
+    (->> (.autoPagingIterable (Customer/list params ^RequestOptions (request-options api-key)))
+         (mapv (fn [^Customer customer]
+                 {:id (.getId customer)
+                  :email (.getEmail customer)})))))
+
+(defn set-customer-email! [api-key customer-id email]
+  (let [^RequestOptions options (request-options api-key)
+        ^java.util.Map params {"email" email}
+        ^Customer customer (Customer/retrieve ^String customer-id options)]
+    (.update customer params options)))

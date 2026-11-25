@@ -32,7 +32,7 @@
 
 (defn month-class [forecast month]
   (let [current (some-> (get-in forecast [:options :as-of])
-                       (.atZone ZoneOffset/UTC) YearMonth/from)]
+                        (.atZone ZoneOffset/UTC) YearMonth/from)]
     (str (cond (= month current) "month-current"
                (= "Actual" (cf/month-kind forecast month)) "month-past"
                :else "month-future")
@@ -43,9 +43,9 @@
 
 (defn mrr-label [currency amount]
   (if (nil? amount) "MRR unavailable"
-    (str (if (= "usd" currency) "$" (str (str/upper-case currency) " "))
-         (format "%,d" (.longValueExact (.setScale (cf/major currency amount) 0 java.math.RoundingMode/HALF_UP)))
-         " MRR")))
+      (str (if (= "usd" currency) "$" (str (str/upper-case currency) " "))
+           (format "%,d" (.longValueExact (.setScale (cf/major currency amount) 0 java.math.RoundingMode/HALF_UP)))
+           " MRR")))
 
 (defn receipt-row [forecast currency [label values member]]
   [:tr [:th.row-label {:scope "row"} (hu/escape-html label)
@@ -80,7 +80,7 @@
             [:th {:class (month-class forecast month) :scope "col"}
              (.format ^YearMonth month (java.time.format.DateTimeFormatter/ofPattern "MMM" java.util.Locale/ENGLISH))
              [:br] [:small (if (str/includes? (month-class forecast month) "month-current")
-                            "Current forecast" (cf/month-kind forecast month))]])]]
+                             "Current forecast" (cf/month-kind forecast month))]])]]
     [:tbody
      (map #(receipt-row forecast currency %) rows)
      [:tr
@@ -96,81 +96,81 @@
 (defn page [forecast opts now]
   (let [{:keys [months rows warnings]} forecast]
     (hiccup/html
-      [:html {:lang "en"}
-       [:head [:meta {:charset "utf-8"}] [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
-        [:title "Cashflow forecast · Clojurists Together"]
-        [:script {:src "/js/cashflow.js" :defer true}]
-        [:style "body{font:16px system-ui;color:#182d36;margin:2rem auto;padding:0 1.5rem;max-width:1500px}a{color:#136b60}h1{margin-bottom:.5rem}p{max-width:85ch;line-height:1.5}table{border-collapse:separate;border-spacing:0;width:100%;margin:1rem 0;font-variant-numeric:tabular-nums}th,td{padding:.65rem;border-bottom:1px solid #edf0f1;white-space:nowrap;text-align:right}.row-label{text-align:left;min-width:220px;position:sticky;left:0;background:white;z-index:1}thead .row-label{background:white}.year-heading{text-align:left;background:white;border-left:1px solid #bac5c9;font-size:1rem;font-weight:600;letter-spacing:.03em}thead .month-past{background:#f7f8f9;color:#52616a}thead .month-future{background:#f4f8f6;color:#36554b}thead .month-current{background:#faf6eb;color:#66542c;border-top:2px solid #b7a476}tbody .month-current{font-weight:500}thead small{font-weight:500;font-size:.75rem}thead th:not(.row-label):not(.year-heading){min-width:105px}.year-start{border-left:1px solid #bac5c9}label{display:inline-block;margin:.5rem 1rem .5rem 0}input{font:inherit;padding:.35rem;border:1px solid #9baba9;border-radius:4px}button,.export{display:inline-block;background:#136b60;color:white;border:0;border-radius:4px;padding:.65rem 1rem;font:inherit;margin:.5rem 1rem .5rem 0}summary{cursor:pointer;font-weight:600;padding:.6rem 0}.muted{color:#586b72}.warning{border-top:1px solid #d6dde0;padding-top:1rem}section{margin-top:2rem}button.membership-toggle{background:none;color:inherit;padding:0;margin:0;font-weight:600;cursor:pointer}button.membership-toggle::before{content:'▸';display:inline-block;width:1em;text-align:left}button.membership-toggle[aria-expanded=true]::before{content:'▾'}.membership-details[hidden]{display:none}.membership-details th{font-weight:400}.membership-details tr:first-child th{font-weight:600}button.receipt-action{background:none;color:inherit;border-radius:2px;padding:0;margin:0;cursor:pointer;font:inherit}button.receipt-action:hover{text-decoration:underline;color:#136b60}button.receipt-action:focus-visible{outline:2px solid #136b60;outline-offset:3px}.member-mrr{display:block;font-size:.75rem;font-weight:400}.row-label button.receipt-action{font-size:.8rem;color:#136b60}.forecast-scroll{overflow-x:auto;position:relative}.forecast-scroll table{margin:0}.forecast-scroll thead{background:white}.forecast-scroll thead .row-label{z-index:3}.forecast-scroll:focus-visible{outline:2px solid #136b60;outline-offset:3px}.forecast-floating-header{position:fixed;z-index:5;overflow:hidden;background:white;pointer-events:none}.forecast-floating-header[hidden]{display:none}.forecast-floating-header table{table-layout:fixed;margin:0}.forecast-floating-header .row-label{z-index:3}"]]
-       [:body
-        [:nav [:a {:href "/manage"} "← Manage account"]]
-        [:h1 "Cashflow forecast"]
-        [:p "Net subscription receipts for grant planning"]
-        [:p.muted cf/assumptions]
-        [:p.muted cf/timing]
-        [:details [:summary "How fees are estimated"] [:p.muted cf/fee-method]]
-        [:p.muted (str "Stripe snapshot: " now " (reused for up to five minutes)")]
-        [:form {:method "get" :id "forecast-controls"}
-         [:input {:type "hidden" :name "receipts" :id "receipts-state" :value (if (:receipts-open opts) "open" "")}]
-         [:label "Starting year " [:input {:type "number" :name "year" :min 2000 :max 2100 :value (.getYear (:start opts))}]]
-         [:label "Years " [:input {:type "number" :name "years" :min 1 :max 5 :value (/ (:horizon opts) 12)}]]
-         [:label "Fallback fee (%) " [:input {:type "number" :name "fee" :min 0 :max 100 :step "0.01" :value (:fee-percent opts)}]]
-         [:label "Fallback fixed fee (in each currency) " [:input {:type "number" :name "fixed" :min 0 :max 10000 :step "0.01" :value (:fee-fixed opts)}]]
-         [:details
-          [:summary "Model company member cancellations"]
-          [:p "Select the first month with no receipts. Leave blank to keep the Stripe subscription schedule. These scenarios do not change Stripe."]
-          (for [member (->> rows
-                            (filter #(= "company" (:type %)))
-                            (map (juxt :id identity))
-                            (into {})
-                            vals
-                            (sort-by :name))]
-            [:div [:label (hu/escape-html (:name member)) " "
-                   [:input {:type "month" :name (str "cancel-" (:id member)) :id (str "cancel-" (:id member))
-                            :aria-label (str "First month without receipts for " (:name member))
-                            :min (str (max-key #(.getLong ^YearMonth % java.time.temporal.ChronoField/PROLEPTIC_MONTH)
-                                               (first months) (YearMonth/from (.atZone ^Instant now ZoneOffset/UTC))))
-                            :max (str (last months))
-                            :value (str (:cancel-month member))}]]])]
-         [:button {:type "submit"} "Update forecast"]
-         [:button {:type "submit" :formaction "/admin/cashflow.xlsx"} "Export Excel"]]
-        (when (empty? rows) [:p "No supported subscriptions to forecast."])
-        [:p.muted "Expand Membership receipts and click a company's current or future month amount to simulate cancellation from that month onward. Payments already received stay in actuals. Use Reset beside the company name to undo."]
-        (for [[currency members] (sort-by key (group-by :currency rows))]
-          [:section
-           [:h2 (str/upper-case currency)]
-           (table forecast [["Baseline net receipts" (cf/total members :baseline (count months))]
-                          ["Scenario net receipts" (cf/total members :values (count months))]
-                          ["Change" (mapv #(when (and %1 %2) (- %1 %2))
+     [:html {:lang "en"}
+      [:head [:meta {:charset "utf-8"}] [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+       [:title "Cashflow forecast · Clojurists Together"]
+       [:script {:src "/js/cashflow.js" :defer true}]
+       [:style "body{font:16px system-ui;color:#182d36;margin:2rem auto;padding:0 1.5rem;max-width:1500px}a{color:#136b60}h1{margin-bottom:.5rem}p{max-width:85ch;line-height:1.5}table{border-collapse:separate;border-spacing:0;width:100%;margin:1rem 0;font-variant-numeric:tabular-nums}th,td{padding:.65rem;border-bottom:1px solid #edf0f1;white-space:nowrap;text-align:right}.row-label{text-align:left;min-width:220px;position:sticky;left:0;background:white;z-index:1}thead .row-label{background:white}.year-heading{text-align:left;background:white;border-left:1px solid #bac5c9;font-size:1rem;font-weight:600;letter-spacing:.03em}thead .month-past{background:#f7f8f9;color:#52616a}thead .month-future{background:#f4f8f6;color:#36554b}thead .month-current{background:#faf6eb;color:#66542c;border-top:2px solid #b7a476}tbody .month-current{font-weight:500}thead small{font-weight:500;font-size:.75rem}thead th:not(.row-label):not(.year-heading){min-width:105px}.year-start{border-left:1px solid #bac5c9}label{display:inline-block;margin:.5rem 1rem .5rem 0}input{font:inherit;padding:.35rem;border:1px solid #9baba9;border-radius:4px}button,.export{display:inline-block;background:#136b60;color:white;border:0;border-radius:4px;padding:.65rem 1rem;font:inherit;margin:.5rem 1rem .5rem 0}summary{cursor:pointer;font-weight:600;padding:.6rem 0}.muted{color:#586b72}.warning{border-top:1px solid #d6dde0;padding-top:1rem}section{margin-top:2rem}button.membership-toggle{background:none;color:inherit;padding:0;margin:0;font-weight:600;cursor:pointer}button.membership-toggle::before{content:'▸';display:inline-block;width:1em;text-align:left}button.membership-toggle[aria-expanded=true]::before{content:'▾'}.membership-details[hidden]{display:none}.membership-details th{font-weight:400}.membership-details tr:first-child th{font-weight:600}button.receipt-action{background:none;color:inherit;border-radius:2px;padding:0;margin:0;cursor:pointer;font:inherit}button.receipt-action:hover{text-decoration:underline;color:#136b60}button.receipt-action:focus-visible{outline:2px solid #136b60;outline-offset:3px}.member-mrr{display:block;font-size:.75rem;font-weight:400}.row-label button.receipt-action{font-size:.8rem;color:#136b60}.forecast-scroll{overflow-x:auto;position:relative}.forecast-scroll table{margin:0}.forecast-scroll thead{background:white}.forecast-scroll thead .row-label{z-index:3}.forecast-scroll:focus-visible{outline:2px solid #136b60;outline-offset:3px}.forecast-floating-header{position:fixed;z-index:5;overflow:hidden;background:white;pointer-events:none}.forecast-floating-header[hidden]{display:none}.forecast-floating-header table{table-layout:fixed;margin:0}.forecast-floating-header .row-label{z-index:3}"]]
+      [:body
+       [:nav [:a {:href "/manage"} "← Manage account"]]
+       [:h1 "Cashflow forecast"]
+       [:p "Net subscription receipts for grant planning"]
+       [:p.muted cf/assumptions]
+       [:p.muted cf/timing]
+       [:details [:summary "How fees are estimated"] [:p.muted cf/fee-method]]
+       [:p.muted (str "Stripe snapshot: " now " (reused for up to five minutes)")]
+       [:form {:method "get" :id "forecast-controls"}
+        [:input {:type "hidden" :name "receipts" :id "receipts-state" :value (if (:receipts-open opts) "open" "")}]
+        [:label "Starting year " [:input {:type "number" :name "year" :min 2000 :max 2100 :value (.getYear (:start opts))}]]
+        [:label "Years " [:input {:type "number" :name "years" :min 1 :max 5 :value (/ (:horizon opts) 12)}]]
+        [:label "Fallback fee (%) " [:input {:type "number" :name "fee" :min 0 :max 100 :step "0.01" :value (:fee-percent opts)}]]
+        [:label "Fallback fixed fee (in each currency) " [:input {:type "number" :name "fixed" :min 0 :max 10000 :step "0.01" :value (:fee-fixed opts)}]]
+        [:details
+         [:summary "Model company member cancellations"]
+         [:p "Select the first month with no receipts. Leave blank to keep the Stripe subscription schedule. These scenarios do not change Stripe."]
+         (for [member (->> rows
+                           (filter #(= "company" (:type %)))
+                           (map (juxt :id identity))
+                           (into {})
+                           vals
+                           (sort-by :name))]
+           [:div [:label (hu/escape-html (:name member)) " "
+                  [:input {:type "month" :name (str "cancel-" (:id member)) :id (str "cancel-" (:id member))
+                           :aria-label (str "First month without receipts for " (:name member))
+                           :min (str (max-key #(.getLong ^YearMonth % java.time.temporal.ChronoField/PROLEPTIC_MONTH)
+                                              (first months) (YearMonth/from (.atZone ^Instant now ZoneOffset/UTC))))
+                           :max (str (last months))
+                           :value (str (:cancel-month member))}]]])]
+        [:button {:type "submit"} "Update forecast"]
+        [:button {:type "submit" :formaction "/admin/cashflow.xlsx"} "Export Excel"]]
+       (when (empty? rows) [:p "No supported subscriptions to forecast."])
+       [:p.muted "Expand Membership receipts and click a company's current or future month amount to simulate cancellation from that month onward. Payments already received stay in actuals. Use Reset beside the company name to undo."]
+       (for [[currency members] (sort-by key (group-by :currency rows))]
+         [:section
+          [:h2 (str/upper-case currency)]
+          (table forecast [["Baseline net receipts" (cf/total members :baseline (count months))]
+                           ["Scenario net receipts" (cf/total members :values (count months))]
+                           ["Change" (mapv #(when (and %1 %2) (- %1 %2))
                                            (cf/total members :values (count months))
                                            (cf/total members :baseline (count months)))]] currency
-                  (concat [["Developer members" (cf/total (filter #(= "developer" (:type %)) members) :values (count months))]]
-                                    (map (juxt :name :values identity) (filter #(= "company" (:type %)) members))
-                                    (when (some #(= "other" (:type %)) members)
-                                      [["Other subscription receipts" (cf/total (filter #(= "other" (:type %)) members) :values (count months))]])))])
-        (when (seq warnings)
-          [:section.warning [:h2 "Excluded subscriptions"]
-           [:p "These subscriptions are excluded from forecast renewals. Their collected payments are included in actuals. Monthly equivalents include recurring discounts and are before fees."]
-           [:div {:style "overflow-x:auto"}
-            [:table
-             [:thead [:tr [:th {:style "text-align:left"} "Customer"] [:th "Monthly equivalent"]
-                      [:th "Billing amount"] [:th {:style "text-align:left"} "Due date"]
-                      [:th {:style "text-align:left"} "Exclusion"]]]
-             [:tbody (for [{:keys [name url monthly billing reason]} warnings]
-                  [:tr [:td {:style "text-align:left"} [:a {:href url :target "_blank" :rel "noopener noreferrer"} (hu/escape-html name)]]
-                   [:td (if monthly
+                 (concat [["Developer members" (cf/total (filter #(= "developer" (:type %)) members) :values (count months))]]
+                         (map (juxt :name :values identity) (filter #(= "company" (:type %)) members))
+                         (when (some #(= "other" (:type %)) members)
+                           [["Other subscription receipts" (cf/total (filter #(= "other" (:type %)) members) :values (count months))]])))])
+       (when (seq warnings)
+         [:section.warning [:h2 "Excluded subscriptions"]
+          [:p "These subscriptions are excluded from forecast renewals. Their collected payments are included in actuals. Monthly equivalents include recurring discounts and are before fees."]
+          [:div {:style "overflow-x:auto"}
+           [:table
+            [:thead [:tr [:th {:style "text-align:left"} "Customer"] [:th "Monthly equivalent"]
+                     [:th "Billing amount"] [:th {:style "text-align:left"} "Due date"]
+                     [:th {:style "text-align:left"} "Exclusion"]]]
+            [:tbody (for [{:keys [name url monthly billing reason]} warnings]
+                      [:tr [:td {:style "text-align:left"} [:a {:href url :target "_blank" :rel "noopener noreferrer"} (hu/escape-html name)]]
+                       [:td (if monthly
                               (str (str/upper-case (:currency monthly)) " "
                                    (format "%,.2f" (double (cf/major (:currency monthly) (:amount monthly)))) "/month")
                               "Unavailable")]
-                   [:td (if (some? (:amount billing))
-                          (str (str/upper-case (:currency billing)) " "
-                               (format "%,.2f" (double (cf/major (:currency billing) (:amount billing))))) "Unavailable")
-                    [:br] [:small.muted (:amount-label billing)]]
-                   [:td {:style "text-align:left"}
-                    (if (:due billing) (str (:due-label billing) " " (:due billing))
-                      (or (:due-note billing) "No due date set"))
-                    (when (:invoice-date billing) [:div [:small.muted (str "Invoice issued " (:invoice-date billing))]])
-                    (when (:next-attempt billing) [:div [:small.muted (str "Next payment attempt " (:next-attempt billing))]])]
-                   [:td {:style "text-align:left"} (hu/escape-html reason)]])]]]])]])))
+                       [:td (if (some? (:amount billing))
+                              (str (str/upper-case (:currency billing)) " "
+                                   (format "%,.2f" (double (cf/major (:currency billing) (:amount billing))))) "Unavailable")
+                        [:br] [:small.muted (:amount-label billing)]]
+                       [:td {:style "text-align:left"}
+                        (if (:due billing) (str (:due-label billing) " " (:due billing))
+                            (or (:due-note billing) "No due date set"))
+                        (when (:invoice-date billing) [:div [:small.muted (str "Invoice issued " (:invoice-date billing))]])
+                        (when (:next-attempt billing) [:div [:small.muted (str "Next payment attempt " (:next-attempt billing))]])]
+                       [:td {:style "text-align:left"} (hu/escape-html reason)]])]]]])]])))
 
 (defn handler [db export?]
   (fn [req]
@@ -192,6 +192,7 @@
       (catch clojure.lang.ExceptionInfo e
         (case (:type (ex-data e))
           ::invalid {:status 400 :body (.getMessage e)}
+          :org.clojuriststogether.app.stripe/unavailable {:status 503 :body (.getMessage e)}
           :org.clojuriststogether.app.stripe/actuals-unavailable {:status 503 :body (.getMessage e)}
           (throw e)))
       (catch StripeException _

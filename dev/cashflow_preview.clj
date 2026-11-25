@@ -1,11 +1,11 @@
 (ns cashflow-preview
   (:require [clojure.core.server :as repl]
             [org.clojuriststogether.app.pages.cashflow :as cashflow]
-         [ring.adapter.jetty :as jetty]
-         [ring.middleware.defaults :as defaults]
-         [ring.middleware.session.memory :as memory]
-         [clojure.java.jdbc :as jdbc]
-         [clojure.string :as str]))
+            [ring.adapter.jetty :as jetty]
+            [ring.middleware.defaults :as defaults]
+            [ring.middleware.session.memory :as memory]
+            [clojure.java.jdbc :as jdbc]
+            [clojure.string :as str]))
 (import '(com.zaxxer.hikari HikariConfig HikariDataSource)
         '(com.stripe Stripe)
         '(java.net URI)
@@ -50,24 +50,24 @@
 
 (def handler
   (defaults/wrap-defaults
-    (fn [req]
-      (assoc-in
-        (cond
-          (not= :get (:request-method req)) {:status 405 :body "Read-only preview"}
-          (and (= "/preview-login" (:uri req)) (token-matches? (get-in req [:query-params "token"])))
-          {:status 302 :headers {"Location" "/admin/cashflow"} :session {:preview-admin true} :body ""}
-          (not (get-in req [:session :preview-admin])) {:status 403 :body "Open the temporary preview sign-in link."}
-          (= "/admin/cashflow" (:uri req)) ((cashflow/handler db false) req)
-          (= "/admin/cashflow.xlsx" (:uri req)) ((cashflow/handler db true) req)
-          :else {:status 302 :headers {"Location" "/admin/cashflow"} :body ""})
-        [:headers "Cache-Control"] "no-store"))
-    {:responses {:content-types true :default-charset "utf-8"}
-     :static {:resources "public"}
-     :params {:urlencoded true :keywordize false}
-     :cookies true
-     :session {:store (memory/memory-store) :cookie-name "cashflow-preview"
-               :cookie-attrs {:http-only true :same-site :strict}}
-     :security {:frame-options :deny :content-type-options :nosniff}}))
+   (fn [req]
+     (assoc-in
+      (cond
+        (not= :get (:request-method req)) {:status 405 :body "Read-only preview"}
+        (and (= "/preview-login" (:uri req)) (token-matches? (get-in req [:query-params "token"])))
+        {:status 302 :headers {"Location" "/admin/cashflow"} :session {:preview-admin true} :body ""}
+        (not (get-in req [:session :preview-admin])) {:status 403 :body "Open the temporary preview sign-in link."}
+        (= "/admin/cashflow" (:uri req)) ((cashflow/handler db false) req)
+        (= "/admin/cashflow.xlsx" (:uri req)) ((cashflow/handler db true) req)
+        :else {:status 302 :headers {"Location" "/admin/cashflow"} :body ""})
+      [:headers "Cache-Control"] "no-store"))
+   {:responses {:content-types true :default-charset "utf-8"}
+    :static {:resources "public"}
+    :params {:urlencoded true :keywordize false}
+    :cookies true
+    :session {:store (memory/memory-store) :cookie-name "cashflow-preview"
+              :cookie-attrs {:http-only true :same-site :strict}}
+    :security {:frame-options :deny :content-type-options :nosniff}}))
 (def server (jetty/run-jetty handler {:host "127.0.0.1" :port 3000 :join? false}))
 (java.nio.file.Files/createDirectories (java.nio.file.Paths/get "target/cashflow-preview" (make-array String 0)) (make-array java.nio.file.attribute.FileAttribute 0))
 (spit "target/cashflow-preview/login-url" (str "http://127.0.0.1:3000/preview-login?token=" login-token))

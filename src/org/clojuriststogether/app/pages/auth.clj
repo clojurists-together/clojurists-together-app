@@ -5,7 +5,7 @@
             [org.clojuriststogether.app.utils :as utils]
             [org.clojuriststogether.app.spec :as specs]
             [org.clojuriststogether.app.email :as email]
-            [honeysql.core :as sql]
+            [honey.sql :as sql]
             [spec-tools.data-spec :as ds]
             [clojure.string :as str]
             [clojure.java.jdbc :as jdbc]
@@ -28,39 +28,20 @@
 
 (defn login-page [req]
   (template/template req
-    [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
-     {:method "POST"}
-     [:div.mb-4
-      [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email"]
-      [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-       {:type "email" :name "email" :placeholder sample-email :required true}]]
-     (anti-forgery/anti-forgery-field)
-     [:div.flex.items-center.justify-between
-      [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign In"]
-      #_[:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]
-     [:p.mt-4.text-sm "Not a member yet? Sign up as a " developer-member " or " company-member " member."]
-     ]
+                     [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+                      {:method "POST"}
+                      [:div.mb-4
+                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "email"} "Email"]
+                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+                        {:type "email" :name "email" :placeholder sample-email :required true}]]
+                      (anti-forgery/anti-forgery-field)
+                      [:div.flex.items-center.justify-between
+                       [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign In"]
+                       #_[:a.inline-block.align-baseline.font-bold.text-sm.text-blue-500.hover:text-blue-800 {:href "#"} "Forgot Password?"]]
+                      [:p.mt-4.text-sm "Not a member yet? Sign up as a " developer-member " or " company-member " member."]]))
 
-    ))
-
-(defn checkout-response [req session stripe]
-  (-> (template/template req
-        [:div [:h1 "Loading checkout"]
-         [:script (format "var checkout = '%s'" (.getId session))]
-         [:script
-          ;; SECURITY TODO: do this more securely
-          ;; We can now redirect directly from server side with .getUrl when we upgrade
-          ;; the Stripe Java library.
-          (format
-            "var stripe = Stripe('%s');
-
-                          stripe.redirectToCheckout({
-                            sessionId: checkout}).then(function (result) {
-                              // TODO: Handle errors
-                            });"
-            (:publishable-key stripe))]])
-      (response/ok)
-      (response/content-type "text/html")))
+(defn checkout-response [^Session session]
+  (response/see-other (.getUrl session)))
 
 (defn checkout-session
   ([customer-id plan-id]
@@ -76,12 +57,12 @@
 
 (defn ^com.stripe.model.billingportal.Session self-serve-session [customer-id]
   (com.stripe.model.billingportal.Session/create
-    {"customer" customer-id}))
+   {"customer" customer-id}))
 
 (defn member-by-email [db email]
   (->> {:select [:*]
         :from [:members]
-        :where [:= :email email]}
+        :where [:= :email [:cast email :citext]]}
        (sql/format)
        (jdbc/query db)
        first))
@@ -159,35 +140,74 @@
   (doto (NumberFormat/getCurrencyInstance)
     (.setMinimumFractionDigits 0)))
 
+(def section-heading-class "text-lg font-semibold text-gray-900 mt-8 mb-3")
+(def eyebrow-class "text-xs font-semibold uppercase tracking-wide text-gray-600")
+(def card-class "bg-white shadow-md rounded")
+(def small-button-class "bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-1 px-3 rounded focus:outline-none focus:shadow-outline")
+
+(defn plan-price
+  "Large price with a smaller currency and interval after it."
+  [{:keys [amount currency interval interval-count]}]
+  [:div
+   [:span.text-2xl.font-bold.text-gray-900 (.format currency-formatter (/ amount 100.0))]
+   [:span.ml-1.text-sm.text-gray-600 (str/upper-case currency) " " (format-interval interval-count interval)]])
+
+(defn plan->map [^Plan plan]
+  {:id (.getId plan)
+   :interval (.getInterval plan)
+   :interval-count (.getIntervalCount plan)
+   :amount (.getAmount plan)
+   :currency (.getCurrency plan)
+   :product (.getProduct plan)})
+
 (defn display-plans [req]
   ;; TODO: migrate to the new Stripe Prices API - https://stripe.com/docs/api/plans
   (let [products (->> (.autoPagingIterable (Product/list {}))
                       (key-by #(.getId %)))
-        plans (.autoPagingIterable (Plan/list {}))
-        grouped-plans (->> plans
-                           (map (fn [plan] {:id (.getId plan)
-                                            :interval (.getInterval plan)
-                                            :interval-count (.getIntervalCount plan)
-                                            :amount (.getAmount plan)
-                                            :currency (.getCurrency plan)
-                                            :product (.getProduct plan)}))
+        grouped-plans (->> (.autoPagingIterable (Plan/list {}))
+                           (map plan->map)
                            (group-by :product))]
-    (map (fn [[id product]]
-           [:div (.getName product)
-            (for [{:keys [interval amount currency interval-count] :as plan} (get grouped-plans id)]
-              [:form {:method "POST" :action (utils/route-name->path req :manage-subscribe)}
-               [:span {:class "block text-sm mb-2 mt-4"} "Plan: " (.format currency-formatter (/ amount 100.0)) " " (str/upper-case currency) " " (format-interval interval-count interval)
-                [:input {:type "hidden" :name "plan" :value (:id plan)}]
-                (anti-forgery/anti-forgery-field)
-                " " [:button {:class link-blue} "Subscribe"]]])
+    [:div.space-y-4
+     (for [[id product] products
+           :let [product-plans (sort-by :amount (get grouped-plans id))]
+           :when (seq product-plans)]
+       [:div {:class card-class}
+        [:h3.px-6.pt-4.font-semibold.text-gray-900 (.getName product)]
+        [:div.px-6.divide-y.divide-gray-200
+         (for [plan product-plans]
+           [:form.flex.items-center.justify-between.py-3
+            {:method "POST" :action (utils/route-name->path req :manage-subscribe)}
+            (plan-price plan)
+            [:input {:type "hidden" :name "plan" :value (:id plan)}]
+            (anti-forgery/anti-forgery-field)
+            [:button {:class small-button-class} "Subscribe"]])]])]))
 
-            ])
-         products)))
+(defn selected-plan-summary
+  "Shown on the sign-up forms so people can see what they're about to pay for."
+  [^Plan plan ^Product product]
+  [:div.my-6.rounded.bg-gray-100.px-4.py-3
+   [:p {:class eyebrow-class} "Your plan"]
+   [:p.font-semibold.text-gray-900 (.getName product)
+    (when-let [nickname (.getNickname plan)] [:span.font-normal.text-gray-700 " – " nickname])]
+   (plan-price (plan->map plan))
+   [:p.text-sm.text-gray-600.mt-2 "You'll enter your card details on the next screen."]])
+
+(defn form-section-heading [title description]
+  [:div.mb-4
+   [:h2.text-base.font-semibold.text-gray-900 title]
+   (when description [:p.text-sm.text-gray-600 description])])
+
+(defn current-plan [subscription-plan]
+  (if subscription-plan
+    (let [plan (retrieve-plan-memo subscription-plan)
+          product (retrieve-product-memo (.getProduct plan))]
+      [:div
+       [:p.font-semibold.text-gray-900 (.getName product)]
+       (plan-price (plan->map plan))])
+    [:p.text-gray-700 "You don't have a plan yet. Choose one below."]))
 
 (comment
-  (display-plans {})
-
-  )
+  (display-plans {}))
 
 (defn email-input [value]
   [:div.mb-4
@@ -196,7 +216,42 @@
     {:name "email" :type "email" :placeholder sample-email :required true
      :value value}]])
 
-(defn auth-routes [stripe db email-service]
+(defn organization-inputs [member]
+  (list
+   [:div.mb-4
+    [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-name"} "Organization Name"]
+    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+     {:name "org-name" :type "text" :placeholder "Acme" :autocomplete "organization" :required true
+      :value (:organization_name member)}]]
+   [:div.mb-4
+    [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-url"} "URL"]
+    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+     {:name "org-url" :type "url" :placeholder "https://www.acme.com" :required true
+      :value (:organization_url member)}]]))
+
+(defn contact-email-inputs [member]
+  (list
+   [:div.mb-4
+    [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "invoicing-email"} "Invoicing Email"
+     [:span.text-gray-600.text-sm.ml-2 "Optional"]]
+    [:p.text-gray-700.text-sm.mb-1 "Where we send invoices."]
+    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+     {:name "invoicing-email" :type "email" :placeholder "accounts@acme.com"
+      :value (:invoicing_email member)}]]
+   [:div.mb-4
+    [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "updates-email"} "News and Surveys email"
+     [:span.text-gray-600.text-sm.ml-2 "Optional"]]
+    [:p.text-gray-700.text-sm.mb-1 "Where we send news updates and surveys."]
+    [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
+     {:name "updates-email" :type "email" :placeholder "dev-team@acme.com"
+      :value (:updates_email member)}]]))
+
+(def optional-email (s/or :empty str/blank? :email ::specs/email))
+
+(defn blank->nil [s]
+  (when-not (str/blank? s) s))
+
+(defn auth-routes [db email-service]
   [["/login" {:name :login
               :get {:handler (fn [req]
                                (unauthenticated! req)
@@ -205,27 +260,26 @@
               :post {:parameters {:form {:email ::specs/email}}
                      :handler
                      (fn [req]
-                       (let [email (get-in req [:form-params "email"])
-                             member-id (:id (member-by-email db email))]
-                         (-> (if member-id
+                       (let [member (member-by-email db (get-in req [:form-params "email"]))]
+                         (-> (if member
                                (let [login-id (UUID/randomUUID)]
                                  (->> {:insert-into :login_links
                                        :values [{:id login-id
-                                                 :member_id member-id}]}
+                                                 :member_id (:id member)}]}
                                       sql/format
                                       (jdbc/execute! db))
-                                 (email/send email-service {:to email
+                                 (email/send email-service {:to (:email member)
                                                             :from "hi@clojuriststogether.org"
                                                             :subject "Log in to Clojurists Together"
                                                             :body (format "<p><a clicktracking=off href='%s'>Click here to log in</a>"
                                                                           (str "https://members.clojuriststogether.org/magic?token=" login-id))
                                                             :content-type "text/html"})
                                  (template/template req
-                                   [:h1 "Login success"]
-                                   [:p "Check your email for a link to manage your subscription"]))
+                                                    [:h1 "Login success"]
+                                                    [:p "Check your email for a link to manage your subscription"]))
                                (template/template req
-                                 [:h1 "Login failed"]
-                                 [:p "No membership for this email. Sign up for a " developer-member " or " company-member " membership"]))
+                                                  [:h1 "Login failed"]
+                                                  [:p "No membership for this email. Sign up for a " developer-member " or " company-member " membership"]))
                              (response/ok)
                              (response/content-type "text/html"))))}}]
    ["/logout" {:name :logout
@@ -262,17 +316,17 @@
 
                                    (and login-link (not (.isBefore now (:expires_at login-link))))
                                    (-> (template/template req
-                                         [:h1 "Link expired"]
-                                         [:p "Your login link has expired. Please "
-                                          [:a {:href (utils/login-path req) :class link-blue} "login"] " again."])
+                                                          [:h1 "Link expired"]
+                                                          [:p "Your login link has expired. Please "
+                                                           [:a {:href (utils/login-path req) :class link-blue} "login"] " again."])
                                        (response/forbidden)
                                        (response/content-type "text/html"))
 
                                    :else
                                    (-> (template/template req
-                                         [:h1 "Link not found"]
-                                         [:p "Couldn't find this login link. Please "
-                                          [:a {:href (utils/login-path req) :class link-blue} "login"] " again."])
+                                                          [:h1 "Link not found"]
+                                                          [:p "Couldn't find this login link. Please "
+                                                           [:a {:href (utils/login-path req) :class link-blue} "login"] " again."])
                                        (response/forbidden)
                                        (response/content-type "text/html")))))}}]
    ["/manage" {:name :manage
@@ -281,66 +335,71 @@
                                 (if-let [member (some->> (sessions/member-id req)
                                                          (get-member db))]
                                   (-> (template/template req
-                                                         [:h1 {:class "block text-xl mb-2"} "Manage your account"]
+                                                         [:h1 {:class "block text-2xl font-semibold text-gray-900 mb-2"} "Manage your account"]
                                                          (when (:is_admin member)
                                                            [:p.mb-4 [:a {:class link-blue :href "/admin/cashflow"} "Cashflow forecast"]])
 
-                                                         [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+                                                         [:h2 {:class section-heading-class} "Your details"]
+                                                         [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8
                                                           {:method "POST"}
 
                                                           (preferred-name-input (:preferred_name member))
                                                           (full-name-input (:person_name member))
                                                           (email-input (:email member))
 
+                                                          (when (= "company" (:member_type member))
+                                                            [:div.border-t.border-gray-200.pt-6.mt-6
+                                                             (form-section-heading "Organization" nil)
+                                                             (organization-inputs member)])
+                                                          [:div.border-t.border-gray-200.pt-6.mt-6
+                                                           (form-section-heading "Contact emails" "Optional. If left blank, these go to your email address above.")
+                                                           (contact-email-inputs member)]
+
                                                           (anti-forgery/anti-forgery-field)
                                                           [:div.flex.items-center.justify-between
                                                            [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Update Details"]]]
 
-                                                         (when (= "company" (:member_type member))
-                                                           (list
-                                                             [:h2 {:class "block text-lg mb-2 mt-4"} "Company details"]
-                                                             [:p "Company Name: " (:organization_name member)]
-                                                             [:p "Company URL: " [:a {:class link-blue :href (:organization_url member)} (:organization_url member)]]
-                                                             [:h2 {:class "block text-lg mb-2 mt-4"} "Contact details"]
-                                                             [:p "Invoicing email: " (:invoicing-email member [:span.italic (:email member)])]
-                                                             [:p "Updates email: " (:updates-email member [:span.italic (:email member)])]))
+                                                         [:h2 {:class section-heading-class} "Billing"]
+                                                         [:div {:class (str card-class " px-6 py-4")}
+                                                          [:p {:class (str eyebrow-class " mb-1")} "Current plan"]
+                                                          (current-plan (:subscription_plan member))
+                                                          [:form.mt-3.pt-3.border-t.border-gray-200
+                                                           {:method "POST" :action (utils/route-name->path req :manage-billing)}
+                                                           (anti-forgery/anti-forgery-field)
+                                                           [:button {:class link-blue} "Manage billing details"]]]
 
-
-                                                         [:h2 {:class "block text-lg mb-2 mt-4"} "Billing"]
-
-                                                         [:form {:method "POST" :action (utils/route-name->path req :manage-billing)}
-                                                          (anti-forgery/anti-forgery-field)
-                                                          [:button {:class link-blue} "Manage billing details"]]
-
-                                                         (let [subscription-plan (:subscription_plan member)
-                                                               plan (some-> subscription-plan
-                                                                            (retrieve-plan-memo)
-                                                                            (get "product")
-                                                                            (retrieve-product-memo)
-                                                                            )]
-                                                           (list
-                                                             [:p "Current Plan: " (or plan
-                                                                                      ;; TODO: find out why sometimes plan isn't found.
-                                                                                      subscription-plan
-                                                                                      "no plan")]
-                                                             (when (nil? subscription-plan)
-                                                               (list [:h2 {:class "block text-lg mb-2 mt-4"} "Select a plan"]
-                                                                     (display-plans req))))))
+                                                         (when (nil? (:subscription_plan member))
+                                                           (list [:h2 {:class section-heading-class} "Choose a plan"]
+                                                                 (display-plans req))))
                                       (response/ok)
                                       (response/content-type "text/html"))
                                   (response/found (utils/login-path req))))}
-               :post {:handler (fn [req]
+               :post {:parameters {:form {:name string?
+                                          :email ::specs/email
+                                          (ds/opt :org-name) string?
+                                          (ds/opt :org-url) string?
+                                          (ds/opt :invoicing-email) optional-email
+                                          (ds/opt :updates-email) optional-email}}
+                      :handler (fn [req]
                                  (if-let [member (some->> (sessions/member-id req)
                                                           (get-member db))]
-                                   (let [{:strs [preferred-name name email]} (get req :form-params)]
+                                   (let [{:strs [preferred-name name email org-name org-url invoicing-email updates-email]}
+                                         (get req :form-params)
+                                         email-owner (member-by-email db email)]
+                                     (when (and email-owner (not= (:id email-owner) (:id member)))
+                                       (throw (already-a-member-ex email)))
                                      (->> {:update :members
-                                           :set {:preferred_name preferred-name
-                                                 :person_name name
-                                                 :email email}
+                                           :set (cond-> {:preferred_name preferred-name
+                                                         :person_name name
+                                                         :email email
+                                                         :invoicing_email (blank->nil invoicing-email)
+                                                         :updates_email (blank->nil updates-email)}
+                                                  (= "company" (:member_type member))
+                                                  (assoc :organization_name org-name
+                                                         :organization_url org-url))
                                            :where [:= :id (:id member)]}
                                           sql/format
                                           (jdbc/execute! db))
-                                     (println (get-in req [:form-params]))
                                      (-> (response/found "/manage")
                                          (response/content-type "text/html")))
                                    (response/found (utils/login-path req))))}}]
@@ -362,7 +421,7 @@
                                                                              (get-in req [:form-params "plan"])
                                                                              redirect-url
                                                                              redirect-url)]
-                                               (checkout-response req session stripe))
+                                               (checkout-response session))
                                              (response/found (utils/login-path req))))}}]
    ["/register/developer"
     {:name :register-developer
@@ -374,27 +433,17 @@
                             plan (retrieve-plan-memo plan-id)
                             product (retrieve-product-memo (.getProduct plan))]
                         (-> (template/template
-                              req
-                              [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
-                               {:method "POST"}
-                               (preferred-name-input nil)
-                               (full-name-input nil)
-                               (email-input nil)
-                               [:input {:type "hidden" :name "plan" :value plan-id}]
-                               (anti-forgery/anti-forgery-field)
-                               [:div.mb-4
-                                [:span.block.text-gray-700.text-sm.font-bold.mb-2 "Plan"]
-                                [:p (.getName product) " - " (.getNickname plan)]
-                                [:p (/ (.getAmountDecimal plan) 100) " " (str/upper-case (.getCurrency plan))
-                                 " every " (.getInterval plan)]
-                                ;; TODO: format interval correctly with number of months
-                                ;[:p "Plan " plan]
-                                ;[:p "Product " product]
-                                ]
-                               [:div.mb-4
-                                [:p "You'll enter your card details on the next screen"]]
-                               [:div.flex.items-center.justify-between
-                                [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]])
+                             req
+                             [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+                              {:method "POST"}
+                              (preferred-name-input nil)
+                              (full-name-input nil)
+                              (email-input nil)
+                              [:input {:type "hidden" :name "plan" :value plan-id}]
+                              (anti-forgery/anti-forgery-field)
+                              (selected-plan-summary plan product)
+                              [:div.flex.items-center.justify-between
+                               [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]])
                             (response/ok)
                             (response/content-type "text/html"))))}
      :post {:parameters {:form {:name string?
@@ -433,7 +482,7 @@
                          ;; Add them to Mailchimp
                          ;; Add them to the website
                          ;; Add to Google docs
-                         (-> (checkout-response req session stripe)
+                         (-> (checkout-response session)
                              (assoc-in [:session :member-id] (:id member)))))}}]
    ["/register/company"
     {:name :register-company
@@ -446,52 +495,24 @@
                    plan (retrieve-plan-memo plan-id)
                    product (retrieve-product-memo (.getProduct plan))]
                (-> (template/template
-                     req
-                     [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
-                      {:method "POST"}
-                      [:div.mb-2
-                       [:span.block.text-gray-700.text-md.font-bold.mb-2
-                        "Primary Contact Details"]]
-                      (preferred-name-input nil)
-                      (full-name-input nil)
-                      (email-input nil)
-                      [:div.mb-2
-                       [:span.block.text-gray-700.text-md.font-bold.mb-2
-                        "Organization Details"]]
-                      [:div.mb-4
-                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-name"} "Organization Name"]
-                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                        {:name "org-name" :type "text" :placeholder "Acme" :autocomplete "organization" :required true}]]
-                      [:div.mb-4
-                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "org-url"} "URL"]
-                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                        {:name "org-url" :type "url" :placeholder "https://www.acme.com" :required true}]]
-                      [:div.mb-4
-                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "invoicing-email"} "Invoicing Email"
-                        [:span.text-gray-600.text-sm.ml-2 "Optional"]]
-                       [:p.text-gray-700.text-sm "Email to send invoices to. If not provided, will be sent to the primary contact."]
-                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                        {:name "invoicing-email" :type "email" :placeholder "accounts@acme.com"}]]
-                      [:div.mb-4
-                       [:label.block.text-gray-700.text-sm.font-bold.mb-2 {:for "updates-email"} "News and Surveys email"
-                        [:span.text-gray-600.text-sm.ml-2 "Optional"]]
-                       [:p.text-gray-700.text-sm "Email to send news updates and surveys to. If not provided, will be sent to the primary contact."]
-                       [:input#username.shadow.appearance-none.border.rounded.w-full.py-2.px-3.text-gray-700.leading-tight.focus:outline-none.focus:shadow-outline
-                        {:name "updates-email" :type "email" :placeholder "dev-team@acme.com"}]]
-                      [:input {:type "hidden" :name "plan" :value plan-id}]
-                      (anti-forgery/anti-forgery-field)
-                      [:div.mb-4
-                       [:span.block.text-gray-700.text-sm.font-bold.mb-2 "Plan"]
-                       [:p (.getName product) " - " (.getNickname plan)]
-                       [:p (/ (.getAmountDecimal plan) 100) " " (str/upper-case (.getCurrency plan))
-                        " every " (.getInterval plan)]
-                       ;[:p "Plan " plan]
-                       ;[:p "Product " product]
-                       ]
-                      [:div.mb-4
-                       [:p "You'll enter your card details on the next screen"]]
-                      [:div.flex.items-center.justify-between
-                       [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]])
+                    req
+                    [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4
+                     {:method "POST"}
+                     (form-section-heading "Primary contact" "The person we'll contact about your membership.")
+                     (preferred-name-input nil)
+                     (full-name-input nil)
+                     (email-input nil)
+                     [:div.border-t.border-gray-200.pt-6.mt-6
+                      (form-section-heading "Organization" nil)]
+                     (organization-inputs nil)
+                     [:div.border-t.border-gray-200.pt-6.mt-6
+                      (form-section-heading "Contact emails" "Optional. If left blank, these go to the primary contact.")]
+                     (contact-email-inputs nil)
+                     [:input {:type "hidden" :name "plan" :value plan-id}]
+                     (anti-forgery/anti-forgery-field)
+                     (selected-plan-summary plan product)
+                     [:div.flex.items-center.justify-between
+                      [:button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline "Sign Up"]]])
                    (response/ok)
                    (response/content-type "text/html"))))}
      :post {:parameters
@@ -500,10 +521,8 @@
                     :org-name string?
                     :org-url string?
                     :plan ::specs/plan-id
-                    (ds/opt :invoicing-email) (s/or :empty str/blank?
-                                                    :email ::specs/email)
-                    (ds/opt :updates-email) (s/or :empty str/blank?
-                                                  :email ::specs/email)}}
+                    (ds/opt :invoicing-email) optional-email
+                    (ds/opt :updates-email) optional-email}}
             :handler
             (fn [req]
               ;; TODO: use a transaction!!
@@ -547,5 +566,5 @@
                 ;; Add them to Mailchimp
                 ;; Add them to the website
                 ;; Add to Google docs
-                (-> (checkout-response req session stripe)
+                (-> (checkout-response session)
                     (assoc-in [:session :member-id] (:id member)))))}}]])

@@ -8,7 +8,6 @@
             [org.clojuriststogether.app.pages.cashflow :as pages.cashflow]
             [org.clojuriststogether.app.webhooks :as webhooks]
             [org.clojuriststogether.app.middleware :as app.middleware]
-            [sentry-clj.ring]
             [reitit.ring.middleware.muuntaja :as muuntaja]
 
             [reitit.ring.middleware.dev :as dev]
@@ -51,9 +50,8 @@
         (assoc :proxy true))
     (defaults store)))
 
-(defmethod ig/init-key :app/handler [_ {:keys [stripe db store profile email-service]}]
-  (let [routes [["" {:middleware [
-                                  :parameters
+(defmethod ig/init-key :app/handler [_ {:keys [stripe-webhook-secret db store profile email-service]}]
+  (let [routes [["" {:middleware [:parameters
                                   :format-negotiate
                                   :format-response
                                   :exception
@@ -64,46 +62,44 @@
                                   [:defaults (get-defaults profile store)]]}
                  ["/" {:name :home
                        :get {:handler (fn [req] (response/found (utils/login-path req)))}}]
-                 (pages.auth/auth-routes stripe db email-service)
-                 (pages.member-list/member-list-routes db stripe)
+                 (pages.auth/auth-routes db email-service)
+                 (pages.member-list/member-list-routes db)
                  (pages.cashflow/routes db)]
                 ;; TODO: middleware for Stripe
                 ["" {:middleware [:exception
                                   :format-response
                                   :coerce-response]}
-                 (webhooks/stripe-webhook db)]]
+                 (webhooks/stripe-webhook db stripe-webhook-secret)]]
         router (ring/router
-                 routes
-                 ;; TODO: disable diffs in prod
-                 {:reitit.middleware/transform (if (= :dev profile)
-                                                 dev/print-request-diffs
-                                                 identity)
-                  :validate spec/validate                   ;; enable spec validation for route data
-                  :reitit.middleware/registry {
-                                               ;; query-params & form-params
-                                               :parameters parameters/parameters-middleware
-                                               ;; content-negotiation
-                                               :format-negotiate muuntaja/format-negotiate-middleware
-                                               ;; encoding response body
-                                               :format-response muuntaja/format-response-middleware
-                                               ;; exception handling
-                                               :exception (app.middleware/exception)
-                                               ;; decoding request body
-                                               :format-request muuntaja/format-request-middleware
-                                               ;; coercing response body
-                                               :coerce-response coercion/coerce-response-middleware
-                                               ;; coercing request parameters
-                                               :coerce-request coercion/coerce-request-middleware
-                                               ;; multipart
-                                               :multipart multipart/multipart-middleware
-                                               ;; defaults
-                                               :defaults {:name ::defaults
-                                                          :wrap defaults/wrap-defaults}
-                                               }
-                  :exception pretty/exception
-                  :data {:coercion reitit.coercion.spec/coercion
-                         :muuntaja m/instance}})]
+                routes
+                ;; TODO: disable diffs in prod
+                {:reitit.middleware/transform (if (= :dev profile)
+                                                dev/print-request-diffs
+                                                identity)
+                 :validate spec/validate                   ;; enable spec validation for route data
+                 :reitit.middleware/registry {                                               ;; query-params & form-params
+                                              :parameters parameters/parameters-middleware
+                                              ;; content-negotiation
+                                              :format-negotiate muuntaja/format-negotiate-middleware
+                                              ;; encoding response body
+                                              :format-response muuntaja/format-response-middleware
+                                              ;; exception handling
+                                              :exception (app.middleware/exception)
+                                              ;; decoding request body
+                                              :format-request muuntaja/format-request-middleware
+                                              ;; coercing response body
+                                              :coerce-response coercion/coerce-response-middleware
+                                              ;; coercing request parameters
+                                              :coerce-request coercion/coerce-request-middleware
+                                              ;; multipart
+                                              :multipart multipart/multipart-middleware
+                                              ;; defaults
+                                              :defaults {:name ::defaults
+                                                         :wrap defaults/wrap-defaults}}
+                 :exception pretty/exception
+                 :data {:coercion reitit.coercion.spec/coercion
+                        :muuntaja m/instance}})]
     (ring/ring-handler
-      router
-      (ring/create-default-handler
-        {:not-found (constantly {:status 404 :body "Not Found"})}))))
+     router
+     (ring/create-default-handler
+      {:not-found (constantly {:status 404 :body "Not Found"})}))))
