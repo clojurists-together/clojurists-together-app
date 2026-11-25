@@ -194,6 +194,6 @@
       (catch StripeException _
         {:status 503 :body "Stripe could not be loaded. Please retry. No forecast was generated."}))))
 
-(defn routes [db]
-  [["/admin/cashflow" {:get {:handler (admin/wrap-admin (handler db false) db)}}]
-   ["/admin/cashflow.xlsx" {:get {:handler (admin/wrap-admin (handler db true) db)}}]])
+(defn routes [db wrap-access]
+  [["/admin/cashflow" {:get {:handler (wrap-access (admin/wrap-admin (handler db false) db))}}]
+   ["/admin/cashflow.xlsx" {:get {:handler (wrap-access (admin/wrap-admin (handler db true) db))}}]])

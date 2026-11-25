@@ -29,6 +29,62 @@ Admins sign in using the existing email link and open `/admin/cashflow` from
 Manage account. Both the page and `/admin/cashflow.xlsx` recheck the database role
 on every request and disable caching. Signup and account updates cannot set roles.
 
+### Cloudflare Access setup
+
+Production also requires a valid Cloudflare Access application JWT on both admin
+routes. Access adds a separate Google sign-in; it does not create a member session.
+Admins still use the existing email-link login and must have `members.is_admin = TRUE`.
+The Access identity and member session are checked independently. Public member
+routes and Stripe webhooks keep their existing authentication.
+
+Configure this externally before enabling the admin pages in production:
+
+1. Keep `members.clojuriststogether.org` proxied through Cloudflare DNS. Create a
+   self-hosted Access application for `members.clojuriststogether.org/admin/*`.
+   This path covers both `/admin/cashflow` and `/admin/cashflow.xlsx`. If a bare
+   `/admin` route is added later, protect that path separately too.
+2. Configure the [Google identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/google/)
+   with a Google OAuth Web client. Its authorized JavaScript origin is
+   `https://TEAM.cloudflareaccess.com`; its callback is
+   `https://TEAM.cloudflareaccess.com/cdn-cgi/access/callback`. Put the Google
+   client ID and client secret in the Cloudflare dashboard; the app does not need
+   the Google client secret.
+3. Select only Google for this Access application. Disable **Accept all available
+   identity providers** and exclude One-time PIN and all other login methods.
+4. Create an Allow policy with an **Include → Emails** rule containing exactly
+   `daniel@clojuriststogether.org` and `kdavis@clojuriststogether.org`.
+   Do not use Everyone, an entire email domain, Bypass, or service-token policies
+   for these admin pages.
+5. Copy the application's audience (AUD) tag and team origin into the app's
+   environment:
+
+   ```
+   CLOUDFLARE_ACCESS_ISSUER=https://TEAM.cloudflareaccess.com
+   CLOUDFLARE_ACCESS_AUDIENCE=APPLICATION_AUD_TAG
+   ```
+
+The issuer and audience are identifiers, not secrets. The issuer must be an HTTPS
+`TEAM.cloudflareaccess.com` origin. The app verifies the RS256 signature against
+that team's `/cdn-cgi/access/certs`, exact issuer, audience, expiry, optional
+not-before time, and a signed email claim. It does not trust unsigned email headers.
+See [Cloudflare's JWT validation guidance](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/).
+Keys are cached for five minutes and refreshed for an unknown key ID; retrieval
+has two-second connect/read limits and a 100 KB response limit. Invalid tokens
+return 403; unavailable keys or an exhausted JWKS refresh budget return 503.
+The library allows at most two key fetches per 30 seconds to limit unknown-key
+refresh traffic. These responses disable caching.
+
+Missing production issuer or audience disables only the admin routes with 503;
+it does not disable the public app. Only explicit `:dev` and `:test` profiles may
+omit both settings. Supplying both settings enforces Access locally too; partial
+local configuration is rejected. The local read-only cashflow preview launcher
+remains separate and does not use these production authentication gates.
+
+These instructions do not configure Cloudflare or Google, set production
+environment variables, or deploy the app. The actual team origin and application
+AUD tag must still be supplied during external setup; use the two email addresses
+above for the allowlist.
+
 The default view covers January of this year through December of next year.
 Completed months contain actual subscription payments less recorded Stripe fees.
 The current month projects receipts already collected plus remaining renewals;

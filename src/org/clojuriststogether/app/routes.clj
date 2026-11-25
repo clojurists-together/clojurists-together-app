@@ -3,6 +3,7 @@
             [ring.util.http-response :as response]
             [ring.middleware.defaults :as defaults]
             [org.clojuriststogether.app.utils :as utils]
+            [org.clojuriststogether.app.cloudflare-access :as access]
             [org.clojuriststogether.app.pages.auth :as pages.auth]
             [org.clojuriststogether.app.pages.member-list :as pages.member-list]
             [org.clojuriststogether.app.pages.cashflow :as pages.cashflow]
@@ -50,8 +51,9 @@
         (assoc :proxy true))
     (defaults store)))
 
-(defmethod ig/init-key :app/handler [_ {:keys [stripe-webhook-secret db store profile email-service]}]
-  (let [routes [["" {:middleware [:parameters
+(defmethod ig/init-key :app/handler [_ {:keys [stripe-webhook-secret db store profile email-service cloudflare-access]}]
+  (let [wrap-access (access/middleware profile cloudflare-access)
+        routes [["" {:middleware [:parameters
                                   :format-negotiate
                                   :format-response
                                   :exception
@@ -64,7 +66,7 @@
                        :get {:handler (fn [req] (response/found (utils/login-path req)))}}]
                  (pages.auth/auth-routes db email-service)
                  (pages.member-list/member-list-routes db)
-                 (pages.cashflow/routes db)]
+                 (pages.cashflow/routes db wrap-access)]
                 ;; TODO: middleware for Stripe
                 ["" {:middleware [:exception
                                   :format-response
@@ -73,7 +75,7 @@
         router (ring/router
                 routes
                 ;; TODO: disable diffs in prod
-                {:reitit.middleware/transform (if (= :dev profile)
+                {:reitit.middleware/transform (if (and (= :dev profile) (not (some identity (vals cloudflare-access))))
                                                 dev/print-request-diffs
                                                 identity)
                  :validate spec/validate                   ;; enable spec validation for route data
