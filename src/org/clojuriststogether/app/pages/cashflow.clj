@@ -41,8 +41,17 @@
 (def cancellation-click
   "var form=document.getElementById('forecast-controls');document.getElementById(this.dataset.input).value=this.dataset.month;document.getElementById('receipts-state').value='open';form.requestSubmit();")
 
+(defn mrr-label [currency amount]
+  (if (nil? amount) "MRR unavailable"
+    (str (if (= "usd" currency) "$" (str (str/upper-case currency) " "))
+         (format "%,d" (.longValueExact (.setScale (cf/major currency amount) 0 java.math.RoundingMode/HALF_UP)))
+         " MRR")))
+
 (defn receipt-row [forecast currency [label values member]]
   [:tr [:th.row-label {:scope "row"} (hu/escape-html label)
+        (when member
+          [:small.member-mrr.muted {:title "Current monthly recurring revenue, after recurring discounts and before Stripe fees. Cancellation scenarios do not change this reference amount."}
+           (mrr-label currency (:mrr member))])
         (when (:cancel-month member)
           [:div [:small.muted (str "Simulated cancellation: " (:cancel-month member) " ")]
            [:button.receipt-action {:type "button" :data-input (str "cancel-" (:id member))
@@ -60,7 +69,7 @@
           amount))])])
 
 (defn table [forecast rows currency membership-rows]
-  [:div {:style "overflow-x:auto"}
+  [:div.forecast-scroll {:tabindex 0 :role "region" :aria-label (str (str/upper-case currency) " cashflow forecast")}
    [:table
     [:thead
      [:tr [:th.row-label {:rowspan 2 :scope "col"} "Member"]
@@ -90,7 +99,8 @@
       [:html {:lang "en"}
        [:head [:meta {:charset "utf-8"}] [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
         [:title "Cashflow forecast · Clojurists Together"]
-        [:style "body{font:16px system-ui;color:#182d36;margin:2rem auto;padding:0 1.5rem;max-width:1500px}a{color:#136b60}h1{margin-bottom:.5rem}p{max-width:85ch;line-height:1.5}table{border-collapse:separate;border-spacing:0;width:100%;margin:1rem 0;font-variant-numeric:tabular-nums}th,td{padding:.65rem;border-bottom:1px solid #edf0f1;white-space:nowrap;text-align:right}.row-label{text-align:left;min-width:220px;position:sticky;left:0;background:white;z-index:1}thead .row-label{background:white}.year-heading{text-align:left;background:white;border-left:1px solid #bac5c9;font-size:1rem;font-weight:600;letter-spacing:.03em}thead .month-past{background:#f7f8f9;color:#52616a}thead .month-future{background:#f4f8f6;color:#36554b}thead .month-current{background:#faf6eb;color:#66542c;border-top:2px solid #b7a476}tbody .month-current{font-weight:500}thead small{font-weight:500;font-size:.75rem}thead th:not(.row-label):not(.year-heading){min-width:105px}.year-start{border-left:1px solid #bac5c9}label{display:inline-block;margin:.5rem 1rem .5rem 0}input{font:inherit;padding:.35rem;border:1px solid #9baba9;border-radius:4px}button,.export{display:inline-block;background:#136b60;color:white;border:0;border-radius:4px;padding:.65rem 1rem;font:inherit;margin:.5rem 1rem .5rem 0}summary{cursor:pointer;font-weight:600;padding:.6rem 0}.muted{color:#586b72}.warning{border-top:1px solid #d6dde0;padding-top:1rem}section{margin-top:2rem}button.membership-toggle{background:none;color:inherit;padding:0;margin:0;font-weight:600;cursor:pointer}button.membership-toggle::before{content:'▸';display:inline-block;width:1em;text-align:left}button.membership-toggle[aria-expanded=true]::before{content:'▾'}.membership-details[hidden]{display:none}.membership-details th{font-weight:400}.membership-details tr:first-child th{font-weight:600}button.receipt-action{background:none;color:inherit;border-radius:2px;padding:0;margin:0;cursor:pointer;font:inherit}button.receipt-action:hover{text-decoration:underline;color:#136b60}button.receipt-action:focus-visible{outline:2px solid #136b60;outline-offset:3px}.row-label button.receipt-action{font-size:.8rem;color:#136b60}"]]
+        [:script {:src "/js/cashflow.js" :defer true}]
+        [:style "body{font:16px system-ui;color:#182d36;margin:2rem auto;padding:0 1.5rem;max-width:1500px}a{color:#136b60}h1{margin-bottom:.5rem}p{max-width:85ch;line-height:1.5}table{border-collapse:separate;border-spacing:0;width:100%;margin:1rem 0;font-variant-numeric:tabular-nums}th,td{padding:.65rem;border-bottom:1px solid #edf0f1;white-space:nowrap;text-align:right}.row-label{text-align:left;min-width:220px;position:sticky;left:0;background:white;z-index:1}thead .row-label{background:white}.year-heading{text-align:left;background:white;border-left:1px solid #bac5c9;font-size:1rem;font-weight:600;letter-spacing:.03em}thead .month-past{background:#f7f8f9;color:#52616a}thead .month-future{background:#f4f8f6;color:#36554b}thead .month-current{background:#faf6eb;color:#66542c;border-top:2px solid #b7a476}tbody .month-current{font-weight:500}thead small{font-weight:500;font-size:.75rem}thead th:not(.row-label):not(.year-heading){min-width:105px}.year-start{border-left:1px solid #bac5c9}label{display:inline-block;margin:.5rem 1rem .5rem 0}input{font:inherit;padding:.35rem;border:1px solid #9baba9;border-radius:4px}button,.export{display:inline-block;background:#136b60;color:white;border:0;border-radius:4px;padding:.65rem 1rem;font:inherit;margin:.5rem 1rem .5rem 0}summary{cursor:pointer;font-weight:600;padding:.6rem 0}.muted{color:#586b72}.warning{border-top:1px solid #d6dde0;padding-top:1rem}section{margin-top:2rem}button.membership-toggle{background:none;color:inherit;padding:0;margin:0;font-weight:600;cursor:pointer}button.membership-toggle::before{content:'▸';display:inline-block;width:1em;text-align:left}button.membership-toggle[aria-expanded=true]::before{content:'▾'}.membership-details[hidden]{display:none}.membership-details th{font-weight:400}.membership-details tr:first-child th{font-weight:600}button.receipt-action{background:none;color:inherit;border-radius:2px;padding:0;margin:0;cursor:pointer;font:inherit}button.receipt-action:hover{text-decoration:underline;color:#136b60}button.receipt-action:focus-visible{outline:2px solid #136b60;outline-offset:3px}.member-mrr{display:block;font-size:.75rem;font-weight:400}.row-label button.receipt-action{font-size:.8rem;color:#136b60}.forecast-scroll{overflow-x:auto;position:relative}.forecast-scroll table{margin:0}.forecast-scroll thead{background:white}.forecast-scroll thead .row-label{z-index:3}.forecast-scroll:focus-visible{outline:2px solid #136b60;outline-offset:3px}.forecast-floating-header{position:fixed;z-index:5;overflow:hidden;background:white;pointer-events:none}.forecast-floating-header[hidden]{display:none}.forecast-floating-header table{table-layout:fixed;margin:0}.forecast-floating-header .row-label{z-index:3}"]]
        [:body
         [:nav [:a {:href "/manage"} "← Manage account"]]
         [:h1 "Cashflow forecast"]

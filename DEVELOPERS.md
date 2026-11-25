@@ -56,7 +56,10 @@ The fixed fee is expressed in each currency's major units. These are estimates,
 not Stripe's actual negotiated fees. These inputs affect only future receipts.
 Payout timing is ignored. Forecast taxes, refunds,
 unpaid invoices, expenses, and future plan/quantity changes are outside this version.
-Schedules, paused collection, manual invoices, usage/tiered pricing, and other
+Manual-collection renewals are included at their expected payment date: renewal plus
+`days_until_due` (zero if unset), with estimated fees deducted. Existing unpaid
+invoices are not treated as new renewals; void invoices are never projected as debts.
+Schedules with future or unknown changes, paused collection, usage/tiered pricing, and other
 unsupported subscriptions appear as exclusions rather than silently counting as zero.
 Exclusions link customer names to Stripe and show monthly-equivalent subscription
 amounts, including recurring discounts and before fees. Collected payments for
@@ -85,3 +88,33 @@ credentials or database writes are needed for these tests.
 ## Testing webhooks
 
 curl -X POST -d @resources/webhooks/customer.subscription.created.json http://localhost:3000/webhook/stripe
+
+## Reloadable cashflow preview
+
+Run `lein trampoline run -m cashflow-preview` with `JDBC_DATABASE_URL` and
+`STRIPE_SECRET_KEY` set. The
+launcher lives in `dev/cashflow_preview.clj`; it binds only to `127.0.0.1:3000`,
+asserts a read-only database connection, and accepts only GET requests. Its temporary
+sign-in URL is written to `target/cashflow-preview/login-url`. This preview entry
+point is for local development, not deployment.
+
+The launcher exposes a Clojure socket REPL at `127.0.0.1:5555`. Connect with
+`nc 127.0.0.1 5555`, then evaluate `(cashflow-preview/reload!)` to explicitly reload
+calculation, Stripe client, Excel export, and page namespaces in dependency order.
+Refresh the browser afterward. Normal HTTP requests never reload or compile code.
+`defonce` caches, the database pool, and the session store stay alive. Static JS/CSS
+is served from `resources/public` without rebuilding. The request handler is
+constructed afresh, so handler edits take effect after an explicit reload too.
+Compilation errors are reported in the REPL; fix the source and call `reload!` again.
+Dependency, environment, or launcher changes still require a restart. The socket
+REPL is a local development interface and must never be exposed on a public address.
+
+Forecast tables grow vertically in the document. A visual-only, aria-hidden header
+copy pins to the window while its table passes behind it. Horizontal scrolling stays
+within each wide table and is synchronised with the floating header. The original
+semantic table remains the only one exposed to assistive technology.
+
+Stripe schedules are expanded with subscriptions. A subscription in the last active
+phase of a release schedule is forecast normally when the schedule ends at or before
+the next renewal. Earlier phases are historical; they do not justify excluding future
+renewals. Schedules that cancel, have future phases, or are not expanded remain excluded.

@@ -24,7 +24,7 @@
                                 {"subscription" (.getId subscription) "limit" 100}))
                             (.getData (.getItems subscription)))))))
         (remove #(#{"canceled" "incomplete_expired"} (.getStatus ^Subscription %))
-                (.autoPagingIterable (Subscription/list {"status" "all" "limit" 100 "expand" ["data.customer" "data.latest_invoice"]})))))
+                (.autoPagingIterable (Subscription/list {"status" "all" "limit" 100 "expand" ["data.customer" "data.latest_invoice" "data.schedule"]})))))
 
 (defn charge-receipt [charge]
   ;; Include receipts from subscriptions that have since been cancelled, and from

@@ -3,7 +3,7 @@
   (:import (java.time Instant ZoneOffset YearMonth ZonedDateTime)))
 
 (def assumptions
-  "Actuals are successful Stripe subscription payments less recorded Stripe fees, by payment month in UTC. Forecast renewals deduct estimated fees and assume successful payment with unchanged plans and quantities. Annual payments appear in their payment or renewal month. Refunds, disputes, payments outside Stripe, separately billed fees and expenses are excluded; payout timing is ignored.")
+  "Actuals are successful Stripe subscription payments less recorded Stripe fees, by payment month in UTC. Forecast renewals deduct estimated fees and assume successful payment with unchanged plans and quantities. Annual payments appear in their payment or renewal month. Manual-collection renewals are expected on the renewal date plus the invoice payment terms. Refunds, disputes, payments outside Stripe, separately billed fees and expenses are excluded; payout timing is ignored.")
 
 (def timing "Completed months show actuals. The current month is a full-month forecast: receipts collected so far plus upcoming renewals. Later months show forecast renewals. Cancellation scenarios only affect future receipts.")
 
@@ -12,16 +12,24 @@
 (defn utc [seconds]
   (when seconds (.atZone (Instant/ofEpochSecond seconds) ZoneOffset/UTC)))
 
+(defn continuing-schedule? [s]
+  (let [schedule (:schedule s)
+        final-end (:end_date (last (:phases schedule)))
+        current-end (get-in schedule [:current_phase :end_date])]
+    (and (map? schedule) (= "active" (:status schedule))
+         (= "release" (:end_behavior schedule))
+         (number? final-end) (= final-end current-end)
+         (number? (:current_period_end s)) (<= final-end (:current_period_end s)))))
+
 (defn unsupported [s]
   (cond
     (not (#{"active" "trialing"} (:status s))) (str "status " (:status s))
     (:pause_collection s) "paused collection"
-    (:schedule s) "subscription schedule"
+    (and (:schedule s) (not (continuing-schedule? s))) "subscription schedule with future or unknown changes"
     (:pending_update s) "pending plan change"
     (seq (get-in s [:discount :coupon :applies_to :products])) "product-specific coupon"
     (= "once" (get-in s [:discount :coupon :duration])) "one-time coupon requires invoice review"
     (:billing_thresholds s) "billing thresholds"
-    (= "send_invoice" (:collection_method s)) "manual invoice collection"
     (nil? (:current_period_end s)) "missing next renewal"
     (empty? (get-in s [:items :data])) "missing subscription items"
     (some (fn [item]
@@ -90,7 +98,7 @@
         renewal (or (when (= "trialing" (:status s)) (:trial_end s)) (:current_period_end s))
         cancelled? (or (:cancel_at_period_end s) (and (:cancel_at s) renewal (<= (:cancel_at s) renewal)))
         due (when (and renewal (not cancelled?) (#{"active" "trialing"} (:status s))
-                       (not (:pause_collection s)) (not (:schedule s)))
+                       (not (:pause_collection s)) (or (nil? (:schedule s)) (continuing-schedule? s)))
               (+ renewal (* 86400 (if (= "send_invoice" (:collection_method s)) (or (:days_until_due s) 0) 0))))]
     (if outstanding?
       {:amount (:amount_remaining invoice) :currency (:currency invoice) :amount-label "Latest unpaid invoice"
@@ -138,7 +146,10 @@
         dates (take-while #(.isBefore ^ZonedDateTime % end)
                           (map #(renewal-date s %) (range)))
         amounts (reduce (fn [acc date]
-                          (let [month (YearMonth/from date)]
+                          (let [receipt-date (if (= "send_invoice" (:collection_method s))
+                                               (.plusDays ^ZonedDateTime date (or (:days_until_due s) 0))
+                                               date)
+                                month (YearMonth/from receipt-date)]
                             (if (and (some #{month} months)
                                      (or (nil? (:as-of opts)) (not (.isBefore (.toInstant ^ZonedDateTime date) (:as-of opts))))
                                      (or (nil? cutoff) (.isBefore ^ZonedDateTime date cutoff))
@@ -162,6 +173,11 @@
                               :reason (or (when (not= 1 (count matches)) "customer has no unique member match")
                                           (when-not (#{"developer" "company"} (:member_type member)) "unknown member type")
                                           (unsupported s))})) subscriptions)
+        mrr (into {} (for [[key items] (group-by (fn [{:keys [subscription member]}]
+                                                  [(:id member) (get-in subscription [:items :data 0 :plan :currency])])
+                                                (filter :member classified))
+                           :let [amounts (map #(some-> (monthly-amount (:subscription %) (or (:as-of opts) (Instant/now))) :amount) items)]]
+                       [key (when (every? some? amounts) (reduce + amounts))]))
         usable (remove :reason classified)
         rows (for [[[member currency] items]
                    (sort-by (fn [[[m c] _]] [c (or (:organization_name m) (:person_name m)) (:id m)])
@@ -170,12 +186,13 @@
                {:id (:id member) :type (:member_type member) :currency currency :customer (:stripe_customer_id member)
                 :name (if (= "company" (:member_type member))
                         (or (not-empty (:organization_name member)) (:person_name member)) (:person_name member))
+                :mrr (get mrr [(:id member) currency] 0)
                 :cancel-month (get cancellations (:id member))
                 :baseline (apply mapv + (map #(receipts (:subscription %) months nil opts) items))
                 :values (apply mapv + (map #(receipts (:subscription %) months (get cancellations (:id member)) opts) items))})
         mask-past (fn [values] (mapv (fn [month value]
                                       (when-not (and (:as-of opts) (.isBefore ^YearMonth month (YearMonth/from (.atZone ^Instant (:as-of opts) ZoneOffset/UTC)))) value)) months values))]
-    {:months months :options opts
+    {:months months :options opts :mrr mrr
      :rows (mapv #(-> % (update :baseline mask-past) (update :values mask-past)) rows)
      :warnings (mapv (fn [{:keys [subscription member reason]}]
                        (warning subscription member reason (or (:as-of opts) (Instant/now))))
@@ -211,7 +228,7 @@
                                             (mapv (fn [month actual projected]
                                                     (if (= "Actual" (month-kind forecast month)) actual
                                                       (+ actual (or projected 0)))) months actuals (or values zeros)))]
-                         (-> row (assoc :actuals actuals)
+                         (-> row (assoc :actuals actuals :mrr (get (:mrr forecast) [(:id row) (:currency row)] 0))
                              (update :baseline merge-values) (update :values merge-values)))))
                 (sort-by (juxt :currency :name)) vec))))
 

@@ -198,3 +198,59 @@
     (is (nil? (:due (cf/billing-details (assoc-in unpaid [:latest_invoice :due_date] nil) now))))
     (is (= "No further renewal scheduled" (:due-note (cf/billing-details (assoc manual :cancel_at_period_end true) now))))
     (is (nil? (:due (cf/billing-details (assoc manual :schedule "sched_1") now))))))
+
+(deftest manual-collection-renewals
+  (let [s (-> subscription
+              (assoc :collection_method "send_invoice" :days_until_due 30
+                     :current_period_end (epoch "2027-06-20T00:00:00Z")
+                     :billing_cycle_anchor (epoch "2026-06-20T00:00:00Z")
+                     :latest_invoice {:status "void" :amount_remaining 1200000})
+              (assoc-in [:items :data 0 :quantity] 1)
+              (assoc-in [:items :data 0 :plan :amount] 1200000)
+              (assoc-in [:items :data 0 :plan :interval] "year"))
+        opts {:as-of (Instant/parse "2026-11-25T00:00:00Z") :fee-percent 5M}
+        f (cf/forecast [member] [s] (YearMonth/of 2026 1) 24 {} opts)
+        row (first (:rows f))]
+    (is (empty? (:warnings f)))
+    (is (= 0 (nth (:values row) 17)))
+    (is (= 1140000 (nth (:values row) 18)))
+    (is (= 1140000 (reduce + (keep identity (:values row)))))
+    (is (= 0 (nth (values-for s {1 (YearMonth/of 2027 7)} opts) 18)))
+    (is (= 0 (reduce + (keep identity (values-for (assoc s :cancel_at_period_end true) {} opts)))))
+    (is (= 1140000 (nth (values-for (assoc s :days_until_due 0) {} opts) 17)))
+    ;; Payment terms can carry a December invoice into the following year.
+    (let [december (assoc s :current_period_end (epoch "2026-12-20T00:00:00Z"))]
+      (is (= 1140000 (nth (values-for december {} opts) 12)))
+      (is (zero? (nth (values-for december {} opts) 11))))))
+
+(deftest terminal-release-schedules-continue-renewing
+  (let [end (:current_period_end subscription)
+        schedule {:status "active" :end_behavior "release"
+                  :current_phase {:start_date (- end 1000) :end_date end}
+                  :phases [{:start_date (- end 1000) :end_date end}]}
+        s (assoc subscription :schedule schedule)]
+    (is (= (values-for subscription) (values-for s)))
+    (is (= "2026-01-31" (:due (cf/billing-details s (Instant/parse "2026-01-01T00:00:00Z")))))
+    (is (empty? (:rows (cf/forecast [member] [(assoc-in s [:schedule :end_behavior] "cancel")]
+                                          (YearMonth/of 2026 1) 12 {}))))
+    (is (empty? (:rows (cf/forecast [member] [(update-in s [:schedule :phases] conj {:start_date end :end_date (+ end 1000)})]
+                                          (YearMonth/of 2026 1) 12 {}))))
+    (is (= [2000 0 0] (take 3 (values-for s {1 (YearMonth/of 2026 2)}))))))
+
+(deftest member-monthly-recurring-revenue
+  (let [annual (-> subscription
+                   (assoc-in [:items :data 0 :plan :interval] "year")
+                   (assoc-in [:items :data 0 :plan :amount] 600000)
+                   (assoc-in [:items :data 0 :quantity] 1))
+        f (cf/forecast [member] [annual subscription] (YearMonth/of 2026 1) 24 {1 (YearMonth/of 2026 2)} {})]
+    (is (= 52000M (:mrr (first (:rows f)))))
+    (is (= "$520 MRR" (page/mrr-label "usd" (:mrr (first (:rows f))))))
+    (is (= 39000M (:mrr (first (:rows (cf/forecast [member]
+                                     (map #(assoc % :discount {:coupon {:duration "forever" :percent_off 25}}) [annual subscription])
+                                     (YearMonth/of 2026 1) 24 {})))))))
+  (is (= "$501 MRR" (page/mrr-label "usd" 50050M)))
+  (is (= "$0 MRR" (page/mrr-label "usd" 0)))
+  (is (= "MRR unavailable" (page/mrr-label "usd" nil)))
+  (let [f (-> (cf/forecast [member] [] (YearMonth/of 2026 1) 12 {})
+              (cf/with-actuals [member] [{:customer "cus_1" :created (epoch "2026-01-01T00:00:00Z") :currency "usd" :net 2000}]))]
+    (is (= 0 (:mrr (first (:rows f)))))))
