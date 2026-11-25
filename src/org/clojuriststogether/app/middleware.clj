@@ -13,7 +13,7 @@
               :method (name (:request-method req))
               :data (:params req)
               :query-string (:query-string req "")
-              :headers (:headers req)
+              :headers (dissoc (:headers req) "cf-access-jwt-assertion" "cookie" "authorization")
               :env {:session (pr-str (:session req))
                     "REMOTE_ADDR" (:remote-addr req)}}
     :user {:ip-address (:remote-addr req)}}))

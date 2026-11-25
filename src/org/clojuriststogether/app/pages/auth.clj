@@ -336,6 +336,8 @@
                                                          (get-member db))]
                                   (-> (template/template req
                                                          [:h1 {:class "block text-2xl font-semibold text-gray-900 mb-2"} "Manage your account"]
+                                                         (when (:is_admin member)
+                                                           [:p.mb-4 [:a {:class link-blue :href "/admin/cashflow"} "Cashflow forecast"]])
 
                                                          [:h2 {:class section-heading-class} "Your details"]
                                                          [:form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8

@@ -10,6 +10,8 @@
                  [com.stripe/stripe-java "34.1.0"]
                  [metosin/ring-http-response "0.9.5"]
                  [hiccup "2.0.0"]
+                 [org.apache.poi/poi-ooxml "6.0.0"]
+                 [com.nimbusds/nimbus-jose-jwt "10.10"]
                  [integrant "1.0.1"]
                  [dev.weavejester/ragtime "0.12.1"]
                  [org.clojure/java.jdbc "0.7.12"]
@@ -24,6 +26,7 @@
                  [org.slf4j/jcl-over-slf4j "2.0.20"]
                  [org.slf4j/jul-to-slf4j "2.0.20"]
                  [org.slf4j/log4j-over-slf4j "2.0.20"]
+                 [org.apache.logging.log4j/log4j-to-slf4j "2.26.1"]
                  [ch.qos.logback/logback-classic "1.6.6"
                   :exclusions [org.slf4j/slf4j-api]]
                  [hikari-cp "4.1.0"]]
