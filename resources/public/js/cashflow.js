@@ -1,4 +1,23 @@
 (function () {
+  document.querySelectorAll('.receipt-action').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var form = document.getElementById('forecast-controls');
+      document.getElementById(button.dataset.input).value = button.dataset.month;
+      document.getElementById('receipts-state').value = 'open';
+      form.requestSubmit();
+    });
+  });
+
+  document.querySelectorAll('.membership-toggle').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var rows = document.getElementById(button.getAttribute('aria-controls'));
+      var expanded = button.getAttribute('aria-expanded') === 'true';
+      rows.hidden = expanded;
+      button.setAttribute('aria-expanded', String(!expanded));
+      document.getElementById('receipts-state').value = expanded ? '' : 'open';
+    });
+  });
+
   document.querySelectorAll('.forecast-scroll').forEach(function (viewport) {
     var table = viewport.querySelector('table');
     var header = table.querySelector('thead');

@@ -86,6 +86,9 @@ button beside each simulated cancellation clears that company's scenario.
 Export submits the current form and reuses the Stripe snapshot for up to five minutes;
 one snapshot is cached in process memory, with its original cutoff time. The workbook
 includes the snapshot time, fee assumptions, scenario months and exclusions.
+Apache POI writes the workbook, including row groups, frozen panes and recalculable
+scenario totals. Page styles and event handlers live in `resources/public/css/cashflow.css`
+and `resources/public/js/cashflow.js`.
 
 Run `lein test` for the forecast, authorization and export tests. No live Stripe
 credentials or database writes are needed for these tests.

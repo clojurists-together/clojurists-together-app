@@ -38,9 +38,6 @@
                :else "month-future")
          (when (= 1 (.getMonthValue ^YearMonth month)) " year-start"))))
 
-(def cancellation-click
-  "var form=document.getElementById('forecast-controls');document.getElementById(this.dataset.input).value=this.dataset.month;document.getElementById('receipts-state').value='open';form.requestSubmit();")
-
 (defn mrr-label [currency amount]
   (if (nil? amount) "MRR unavailable"
       (str (if (= "usd" currency) "$" (str (str/upper-case currency) " "))
@@ -55,14 +52,14 @@
         (when (:cancel-month member)
           [:div [:small.muted (str "Simulated cancellation: " (:cancel-month member) " ")]
            [:button.receipt-action {:type "button" :data-input (str "cancel-" (:id member))
-                                    :data-month "" :onclick cancellation-click
+                                    :data-month ""
                                     :aria-label (str "Reset cancellation for " label)} "Reset"]])]
    (for [[month value] (map vector (:months forecast) values)]
      [:td {:class (month-class forecast month)}
       (let [amount (if (nil? value) "—" (format "%,.2f" (double (cf/major currency value))))]
         (if (and member (= "Forecast" (cf/month-kind forecast month)))
           [:button.receipt-action {:type "button" :data-input (str "cancel-" (:id member))
-                                   :data-month (str month) :onclick cancellation-click
+                                   :data-month (str month)
                                    :title (str "Simulate cancellation from " month)
                                    :aria-label (str "Simulate cancellation for " label " from " month "; net receipts " amount " " currency)}
            amount]
@@ -86,8 +83,7 @@
      [:tr
       [:th.row-label
        [:button.membership-toggle
-        {:type "button" :aria-expanded (str (boolean (get-in forecast [:options :receipts-open]))) :aria-controls (str "membership-" currency)
-         :onclick "var rows=document.getElementById(this.getAttribute('aria-controls'));var expanded=this.getAttribute('aria-expanded')==='true';rows.hidden=expanded;this.setAttribute('aria-expanded',String(!expanded));document.getElementById('receipts-state').value=expanded?'':'open';"}
+        {:type "button" :aria-expanded (str (boolean (get-in forecast [:options :receipts-open]))) :aria-controls (str "membership-" currency)}
         "Membership receipts"]]
       [:td {:colspan (count (:months forecast))}]]]
     [:tbody.membership-details {:id (str "membership-" currency) :hidden (not (get-in forecast [:options :receipts-open]))}
@@ -100,7 +96,7 @@
       [:head [:meta {:charset "utf-8"}] [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
        [:title "Cashflow forecast · Clojurists Together"]
        [:script {:src "/js/cashflow.js" :defer true}]
-       [:style "body{font:16px system-ui;color:#182d36;margin:2rem auto;padding:0 1.5rem;max-width:1500px}a{color:#136b60}h1{margin-bottom:.5rem}p{max-width:85ch;line-height:1.5}table{border-collapse:separate;border-spacing:0;width:100%;margin:1rem 0;font-variant-numeric:tabular-nums}th,td{padding:.65rem;border-bottom:1px solid #edf0f1;white-space:nowrap;text-align:right}.row-label{text-align:left;min-width:220px;position:sticky;left:0;background:white;z-index:1}thead .row-label{background:white}.year-heading{text-align:left;background:white;border-left:1px solid #bac5c9;font-size:1rem;font-weight:600;letter-spacing:.03em}thead .month-past{background:#f7f8f9;color:#52616a}thead .month-future{background:#f4f8f6;color:#36554b}thead .month-current{background:#faf6eb;color:#66542c;border-top:2px solid #b7a476}tbody .month-current{font-weight:500}thead small{font-weight:500;font-size:.75rem}thead th:not(.row-label):not(.year-heading){min-width:105px}.year-start{border-left:1px solid #bac5c9}label{display:inline-block;margin:.5rem 1rem .5rem 0}input{font:inherit;padding:.35rem;border:1px solid #9baba9;border-radius:4px}button,.export{display:inline-block;background:#136b60;color:white;border:0;border-radius:4px;padding:.65rem 1rem;font:inherit;margin:.5rem 1rem .5rem 0}summary{cursor:pointer;font-weight:600;padding:.6rem 0}.muted{color:#586b72}.warning{border-top:1px solid #d6dde0;padding-top:1rem}section{margin-top:2rem}button.membership-toggle{background:none;color:inherit;padding:0;margin:0;font-weight:600;cursor:pointer}button.membership-toggle::before{content:'▸';display:inline-block;width:1em;text-align:left}button.membership-toggle[aria-expanded=true]::before{content:'▾'}.membership-details[hidden]{display:none}.membership-details th{font-weight:400}.membership-details tr:first-child th{font-weight:600}button.receipt-action{background:none;color:inherit;border-radius:2px;padding:0;margin:0;cursor:pointer;font:inherit}button.receipt-action:hover{text-decoration:underline;color:#136b60}button.receipt-action:focus-visible{outline:2px solid #136b60;outline-offset:3px}.member-mrr{display:block;font-size:.75rem;font-weight:400}.row-label button.receipt-action{font-size:.8rem;color:#136b60}.forecast-scroll{overflow-x:auto;position:relative}.forecast-scroll table{margin:0}.forecast-scroll thead{background:white}.forecast-scroll thead .row-label{z-index:3}.forecast-scroll:focus-visible{outline:2px solid #136b60;outline-offset:3px}.forecast-floating-header{position:fixed;z-index:5;overflow:hidden;background:white;pointer-events:none}.forecast-floating-header[hidden]{display:none}.forecast-floating-header table{table-layout:fixed;margin:0}.forecast-floating-header .row-label{z-index:3}"]]
+       [:link {:rel "stylesheet" :href "/css/cashflow.css"}]]
       [:body
        [:nav [:a {:href "/manage"} "← Manage account"]]
        [:h1 "Cashflow forecast"]
@@ -150,13 +146,13 @@
        (when (seq warnings)
          [:section.warning [:h2 "Excluded subscriptions"]
           [:p "These subscriptions are excluded from forecast renewals. Their collected payments are included in actuals. Monthly equivalents include recurring discounts and are before fees."]
-          [:div {:style "overflow-x:auto"}
+          [:div.horizontal-scroll
            [:table
-            [:thead [:tr [:th {:style "text-align:left"} "Customer"] [:th "Monthly equivalent"]
-                     [:th "Billing amount"] [:th {:style "text-align:left"} "Due date"]
-                     [:th {:style "text-align:left"} "Exclusion"]]]
+            [:thead [:tr [:th.text-left "Customer"] [:th "Monthly equivalent"]
+                     [:th "Billing amount"] [:th.text-left "Due date"]
+                     [:th.text-left "Exclusion"]]]
             [:tbody (for [{:keys [name url monthly billing reason]} warnings]
-                      [:tr [:td {:style "text-align:left"} [:a {:href url :target "_blank" :rel "noopener noreferrer"} (hu/escape-html name)]]
+                      [:tr [:td.text-left [:a {:href url :target "_blank" :rel "noopener noreferrer"} (hu/escape-html name)]]
                        [:td (if monthly
                               (str (str/upper-case (:currency monthly)) " "
                                    (format "%,.2f" (double (cf/major (:currency monthly) (:amount monthly)))) "/month")
@@ -165,12 +161,12 @@
                               (str (str/upper-case (:currency billing)) " "
                                    (format "%,.2f" (double (cf/major (:currency billing) (:amount billing))))) "Unavailable")
                         [:br] [:small.muted (:amount-label billing)]]
-                       [:td {:style "text-align:left"}
+                       [:td.text-left
                         (if (:due billing) (str (:due-label billing) " " (:due billing))
                             (or (:due-note billing) "No due date set"))
                         (when (:invoice-date billing) [:div [:small.muted (str "Invoice issued " (:invoice-date billing))]])
                         (when (:next-attempt billing) [:div [:small.muted (str "Next payment attempt " (:next-attempt billing))]])]
-                       [:td {:style "text-align:left"} (hu/escape-html reason)]])]]]])]])))
+                       [:td.text-left (hu/escape-html reason)]])]]]])]])))
 
 (defn handler [db export?]
   (fn [req]

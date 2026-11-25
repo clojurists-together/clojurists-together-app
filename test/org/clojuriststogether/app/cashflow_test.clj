@@ -4,16 +4,14 @@
             [org.clojuriststogether.app.cashflow-xlsx :as xlsx]
             [org.clojuriststogether.app.pages.cashflow :as page]
             [org.clojuriststogether.app.pages.auth :as auth]
-            [org.clojuriststogether.app.admin.auth :as admin]
             [org.clojuriststogether.app.stripe :as stripe]
             [org.clojuriststogether.app.routes]
             [integrant.core :as ig]
             [ring.middleware.session.memory :as memory]
-            [ring.core.protocols :as protocols]
             [clojure.java.jdbc :as jdbc])
   (:import (java.time Instant YearMonth)
            (java.io ByteArrayInputStream)
-           (java.util.zip ZipInputStream)))
+           (org.apache.poi.xssf.usermodel XSSFWorkbook)))
 
 (defn epoch [s] (.getEpochSecond (Instant/parse s)))
 (def member {:id 1 :person_name "A Developer" :member_type "developer" :stripe_customer_id "cus_1"})
@@ -54,41 +52,12 @@
     (let [f (cf/forecast [member] [s] (YearMonth/of 2026 1) 12 {})]
       (is (empty? (:rows f))) (is (= 1 (count (:warnings f)))))))
 
-(deftest authorization-is-rechecked
-  (let [current (atom member) calls (atom 0)
-        handler (admin/wrap-admin (fn [_] (swap! calls inc) {:status 200 :body "ok"}) {})
-        req {:session {:member-id 1}}]
-    (with-redefs [auth/get-member (fn [_ _] @current)]
-      (is (= 302 (:status (handler {}))))
-      (is (= 403 (:status (handler req))))
-      (swap! current assoc :is_admin true)
-      (is (= 200 (:status (handler req))))
-      (swap! current assoc :is_admin false)
-      (is (= 403 (:status (handler req))))
-      (is (= 1 @calls))
-      (is (= "no-store" (get-in (handler req) [:headers "Cache-Control"]))))))
-
-(deftest input-and-export
+(deftest forecast-input-validation
   (let [now (Instant/parse "2026-01-01T00:00:00Z")]
     (is (= 24 (:horizon (page/options {} now))))
-    (doseq [p [{"years" "0"} {"year" "not-a-year"} {"fee" "101"} {"fixed" "-1"}
-               {"cancel-1" "2026-99"}]]
-      (is (thrown? clojure.lang.ExceptionInfo (page/options p now))))
-    (with-redefs [jdbc/query (fn [& _] [member]) stripe/subscriptions (fn [] [subscription])
-                  stripe/actual-receipts (fn [& _] [])
-                  stripe/snapshot (fn [_] {:as-of (Instant/now) :subscriptions [subscription] :actuals []})]
-      (let [response ((page/handler {} true) {:query-params {"year" "2026"}})]
-        (is (= 200 (:status response)))
-        (is (satisfies? protocols/StreamableResponseBody (:body response)))
-        (with-open [zip (ZipInputStream. (:body response))]
-          (let [parts (loop [parts {}]
-                        (if-let [entry (.getNextEntry zip)]
-                          (let [out (java.io.ByteArrayOutputStream.)]
-                            (clojure.java.io/copy zip out)
-                            (recur (assoc parts (.getName entry) (.toString out "UTF-8")))) parts))]
-            (is (contains? parts "xl/worksheets/sheet1.xml"))
-            (is (.contains (get parts "xl/worksheets/sheet1.xml") "Developer members"))
-            (is (.contains (get parts "xl/worksheets/sheet2.xml") "Estimated fee"))))))))
+    (doseq [params [{"years" "0"} {"year" "not-a-year"} {"fee" "101"} {"fixed" "-1"}
+                    {"cancel-1" "2026-99"}]]
+      (is (thrown? clojure.lang.ExceptionInfo (page/options params now))))))
 
 (deftest routed-page-and-export
   (let [current (atom (assoc member :is_admin true))
@@ -96,8 +65,6 @@
                                            :store (memory/memory-store (atom {"session" {:member-id 1}}))})]
     (with-redefs [auth/get-member (fn [& _] @current)
                   jdbc/query (fn [& _] [member])
-                  stripe/subscriptions (fn [] [subscription])
-                  stripe/actual-receipts (fn [& _] [])
                   stripe/snapshot (fn [_] {:as-of (Instant/now) :subscriptions [subscription] :actuals []})]
       (doseq [path ["/admin/cashflow" "/admin/cashflow.xlsx"]]
         (let [req {:request-method :get :uri path :scheme :http :server-name "localhost"
@@ -105,6 +72,10 @@
               result (handler req)]
           (is (= 200 (:status result)))
           (is (= "no-store" (get-in result [:headers "Cache-Control"])))
+          (when (= path "/admin/cashflow.xlsx")
+            (with-open [workbook (XSSFWorkbook. (:body result))]
+              (is (= "Cashflow" (.getSheetName workbook 0)))
+              (is (= "Assumptions" (.getSheetName workbook 1)))))
           (reset! current member)
           (is (= 403 (:status (handler req))))
           (is (= 302 (:status (handler (assoc req :headers {})))))
@@ -123,18 +94,25 @@
               (cf/with-actuals [member] history))
         developer (first (filter #(= 1 (:id %)) (:rows f)))
         other (first (filter #(= "other" (:type %)) (:rows f)))]
-    ;; Actual fees don't change when the forecast fee or cancellation assumption changes.
     (is (= [1800 1810 3720 1900 1900] (:baseline developer)))
     (is (= [1800 1810 1820 0 0] (:values developer)))
     (is (= [9000 0 0 0 0] (:values other)))
     (is (= "Actual" (cf/month-kind f (YearMonth/of 2026 2))))
     (is (= "Forecast" (cf/month-kind f (YearMonth/of 2026 3))))
     (is (= [10800 1810 1820 0 0] (cf/total (:rows f) :values 5)))
-    (let [export (vec (xlsx/forecast-rows f))]
-      (is (= "2026-01 Actual" (get-in export [0 2])))
-      (is (= "2026-03 Forecast" (get-in export [0 4])))
-      (is (= 108M (get-in export [2 2 :value])))
-      (is (= "SUM(C4:C5)" (get-in export [2 2 :formula]))))))
+    (with-open [workbook (XSSFWorkbook. (ByteArrayInputStream. (xlsx/workbook f now)))]
+      (let [sheet (.getSheet workbook "Cashflow")
+            cell (fn [row column] (.getCell (.getRow sheet row) column))
+            total (cell 2 2)]
+        (is (= "2026-01 Actual" (.getStringCellValue (cell 0 2))))
+        (is (= "2026-03 Forecast" (.getStringCellValue (cell 0 4))))
+        (is (= 108.0 (.getNumericCellValue total)))
+        (is (= "SUM(C4:C5)" (.getCellFormula total)))
+        (is (= 1 (.getOutlineLevel (.getRow sheet 3))))
+        (is (= 2 (.getVerticalSplitPosition (.getPaneInformation sheet))))
+        (.setCellValue (cell 3 2) 200.0)
+        (.evaluateAll (.createFormulaEvaluator (.getCreationHelper workbook)))
+        (is (= 290.0 (.getNumericCellValue total)))))))
 
 (deftest stripe-actual-payment-normalization
   (let [charge {:paid true :status "succeeded" :created 100 :currency "usd"
@@ -218,7 +196,6 @@
     (is (= 0 (nth (values-for s {1 (YearMonth/of 2027 7)} opts) 18)))
     (is (= 0 (reduce + (keep identity (values-for (assoc s :cancel_at_period_end true) {} opts)))))
     (is (= 1140000 (nth (values-for (assoc s :days_until_due 0) {} opts) 17)))
-    ;; Payment terms can carry a December invoice into the following year.
     (let [december (assoc s :current_period_end (epoch "2026-12-20T00:00:00Z"))]
       (is (= 1140000 (nth (values-for december {} opts) 12)))
       (is (zero? (nth (values-for december {} opts) 11))))))
