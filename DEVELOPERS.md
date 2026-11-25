@@ -210,3 +210,20 @@ lein run -m org.clojuriststogether.app.admin.mailchimp-apply
 ```console
 bin/send-test-webhook
 ```
+
+### Cashflow snapshot loading
+
+Cashflow requests never wait for Stripe history. A cold cache starts one background
+load per dyno and returns a loading page that refreshes every five seconds. Once
+loaded, scenarios and exports reuse the snapshot. After five minutes, a visit
+starts a refresh while serving the previous complete snapshot and its timestamp.
+Refresh failures retain the previous snapshot for up to 24 hours, display a
+warning, and wait 30 seconds before retrying. Incomplete exports return 503 with
+Retry-After rather than generating an empty spreadsheet.
+
+This cache is bounded to one reporting start date and is held in memory. Dyno
+restarts require another initial load. Different reporting start dates load their
+own history, with only one load running at a time. No Stripe writes are performed.
+Logs record snapshot duration and subscription/receipt counts, without customer
+or payment details. A durable database snapshot would avoid loading again after
+restarts if the initial wait becomes inconvenient.

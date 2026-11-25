@@ -104,7 +104,9 @@
        [:p.muted cf/assumptions]
        [:p.muted cf/timing]
        [:details [:summary "How fees are estimated"] [:p.muted cf/fee-method]]
-       [:p.muted (str "Stripe snapshot: " now " (reused for up to five minutes)")]
+       [:p.muted (str "Stripe snapshot: " now " (refreshes in the background after five minutes)")]
+       (when (:refreshing? opts) [:p.muted "Refreshing Stripe data in the background. These figures use the last complete snapshot."])
+       (when (:refresh-failed? opts) [:p.muted "Stripe refresh failed. Showing the last complete snapshot; retry on your next visit."])
        [:form {:method "get" :id "forecast-controls"}
         [:input {:type "hidden" :name "receipts" :id "receipts-state" :value (if (:receipts-open opts) "open" "")}]
         [:label "Starting year " [:input {:type "number" :name "year" :min 2000 :max 2100 :value (.getYear (:start opts))}]]
@@ -175,7 +177,8 @@
             opts (options (:query-params req) now)
             snapshot (stripe/snapshot (:start opts))
             now (:as-of snapshot)
-            opts (assoc opts :as-of now :fee-models (cf/fee-models (:fee-history snapshot)))
+            opts (assoc opts :as-of now :fee-models (cf/fee-models (:fee-history snapshot))
+                        :refreshing? (:refreshing? snapshot) :refresh-failed? (:refresh-failed? snapshot))
             members (jdbc/query db ["SELECT id, person_name, organization_name, member_type, stripe_customer_id FROM members"])
             forecast (-> (cf/forecast members (:subscriptions snapshot) (:start opts) (:horizon opts) (:cancellations opts) opts)
                          (cf/with-actuals members (:actuals snapshot)))]
@@ -187,6 +190,14 @@
            :body (page forecast opts now)}))
       (catch clojure.lang.ExceptionInfo e
         (case (:type (ex-data e))
+          :org.clojuriststogether.app.stripe/loading
+          {:status (if export? 503 202)
+           :headers (cond-> {"Content-Type" "text/html; charset=utf-8" "Retry-After" "5" "Cache-Control" "no-store"}
+                      (not export?) (assoc "Refresh" "5"))
+           :body (hiccup/html [:html [:head [:title "Loading cashflow"]
+                                      [:link {:rel "stylesheet" :href "/css/cashflow.css"}]]
+                               [:body [:h1 "Loading cashflow"] [:p (.getMessage e)]
+                                (when export? [:p "Return to the forecast and retry the export once loading finishes."])]])}
           ::invalid {:status 400 :body (.getMessage e)}
           :org.clojuriststogether.app.stripe/unavailable {:status 503 :body (.getMessage e)}
           :org.clojuriststogether.app.stripe/actuals-unavailable {:status 503 :body (.getMessage e)}
