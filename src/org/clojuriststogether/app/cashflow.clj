@@ -210,7 +210,7 @@
                      (let [matches (get by-customer customer)
                            member (when (= 1 (count matches)) (first matches))
                            amounts (reduce (fn [m p] (update m (YearMonth/from (utc (:created p))) (fnil + 0) (:net p))) {} payments)]
-                       {:id (or (:id member) customer) :currency currency
+                       {:id (or (:id member) customer) :currency currency :customer customer
                         :type (if (#{"developer" "company"} (:member_type member)) (:member_type member) "other")
                         :name (or (not-empty (:organization_name member)) (:person_name member)
                                   (:customer-name (first payments)) "Unmatched Stripe customer")

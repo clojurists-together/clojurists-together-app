@@ -24,7 +24,7 @@ table {
   border-spacing: 0;
   width: 100%;
   margin: 1rem 0;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 th, td {
@@ -183,10 +183,19 @@ button.receipt-action:focus-visible {
   outline-offset: 3px;
 }
 
+.member-identity {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .member-mrr {
-  display: block;
+  margin-left: auto;
   font-size: .75rem;
   font-weight: 400;
+  text-align: right;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 .row-label button.receipt-action {
