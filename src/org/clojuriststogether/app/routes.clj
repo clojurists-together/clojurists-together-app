@@ -35,7 +35,6 @@
               :xss-protection {:enable? true, :mode :block}
               :frame-options :sameorigin
               :content-type-options :nosniff}
-   :static {:resources "public"}
    :responses {:not-modified-responses true
                :absolute-redirects true
                :content-types true
@@ -103,5 +102,7 @@
                         :muuntaja m/instance}})]
     (ring/ring-handler
      router
-     (ring/create-default-handler
-      {:not-found (constantly {:status 404 :body "Not Found"})}))))
+     (ring/routes
+      (ring/create-resource-handler {:path "/" :root "public"})
+      (ring/create-default-handler
+       {:not-found (constantly {:status 404 :body "Not Found"})})))))

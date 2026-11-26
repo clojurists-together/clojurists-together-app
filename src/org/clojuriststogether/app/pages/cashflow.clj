@@ -95,8 +95,8 @@
      [:html {:lang "en"}
       [:head [:meta {:charset "utf-8"}] [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
        [:title "Cashflow forecast · Clojurists Together"]
-       [:script {:src "/js/cashflow.js" :defer true}]
-       [:link {:rel "stylesheet" :href "/css/cashflow.css"}]]
+       [:script {:src "/js/cashflow.js?v=1" :defer true}]
+       [:link {:rel "stylesheet" :href "/css/cashflow.css?v=1"}]]
       [:body
        [:nav [:a {:href "/manage"} "← Manage account"]]
        [:h1 "Cashflow forecast"]
@@ -195,7 +195,7 @@
            :headers (cond-> {"Content-Type" "text/html; charset=utf-8" "Retry-After" "5" "Cache-Control" "no-store"}
                       (not export?) (assoc "Refresh" "5"))
            :body (hiccup/html [:html [:head [:title "Loading cashflow"]
-                                      [:link {:rel "stylesheet" :href "/css/cashflow.css"}]]
+                                      [:link {:rel "stylesheet" :href "/css/cashflow.css?v=1"}]]
                                [:body [:h1 "Loading cashflow"] [:p (.getMessage e)]
                                 (when export? [:p "Return to the forecast and retry the export once loading finishes."])]])}
           ::invalid {:status 400 :body (.getMessage e)}
