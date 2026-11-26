@@ -125,7 +125,8 @@
       (cond
         (= path "/v1/products/prod_membership") product
         (= path "/v1/products") {:object "list" :data [product] :has_more false :url "/v1/products"}
-        (= path "/v1/prices") {:object "list" :data [(recurring-price "plan_legacy") (recurring-price "price_modern")
+        (= path "/v1/prices") {:object "list" :data [(recurring-price "plan_legacy") (assoc (recurring-price "price_modern") :metadata {"public" "true"})
+                                                     (assoc (recurring-price "price_private") :metadata {"public" "false"})
                                                      (assoc (recurring-price "price_metered") :recurring {:usage_type "metered"})
                                                      (assoc (recurring-price "price_tiered") :billing_scheme "tiered" :unit_amount nil)]
                                :has_more false :url "/v1/prices"}
@@ -141,6 +142,7 @@
       (let [rendered (html (auth/display-plans {::r/router (r/router [["/manage/subscribe" {:name :manage-subscribe}]])}))]
         (is (str/includes? rendered "plan_legacy"))
         (is (str/includes? rendered "price_modern"))
+        (is (not (str/includes? rendered "price_private")))
         (is (not (str/includes? rendered "price_metered")))
         (is (not (str/includes? rendered "price_tiered"))))
       (is (= {"active" "true" "type" "recurring"}

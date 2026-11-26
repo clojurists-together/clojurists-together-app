@@ -180,6 +180,7 @@
                       (key-by #(.getId %)))
         grouped-plans (->> (.autoPagingIterable (Price/list {"active" true "type" "recurring"}))
                            (filter membership-price?)
+                           (remove #(= "false" (get (.getMetadata ^Price %) "public")))
                            (map price->map)
                            (group-by :product))]
     [:div.space-y-4
