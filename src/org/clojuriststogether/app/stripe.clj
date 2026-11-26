@@ -1,12 +1,10 @@
 (ns org.clojuriststogether.app.stripe
   (:require [integrant.core :as ig]
             [cheshire.core :as json]
-            [clj-http.client :as http]
-            [clojure.tools.logging :as log])
+            [clj-http.client :as http])
   (:import (com.stripe Stripe)
            (com.stripe.model Customer)
-           (com.stripe.net RequestOptions)
-           (java.time Instant YearMonth ZoneOffset)))
+           (com.stripe.net RequestOptions)))
 
 (defn customer-id [customer]
   (if (map? customer) (:id customer) customer))
@@ -57,69 +55,6 @@
        :subscription (get-in charge [:invoice :subscription])
        :created (:created charge) :currency (:currency balance) :net (:net balance)
        :gross (:amount balance) :fee (:fee balance) :charge-currency (:currency charge)})))
-
-(defn actual-receipts [^YearMonth start ^Instant now]
-  (let [since (.toEpochSecond (.atStartOfDay (.atDay start 1) ZoneOffset/UTC))]
-    (if (>= since (.getEpochSecond now)) []
-        (into [] (keep charge-receipt)
-              (forecast-list "charges" {"created[gte]" since "created[lt]" (.getEpochSecond now)
-                                        "expand[]" ["data.invoice" "data.balance_transaction" "data.customer"]})))))
-
-(defonce ^:private snapshot-cache (atom nil))
-
-(defn load-snapshot [start]
-  (let [began (System/nanoTime)
-        subs (subscriptions)
-        ;; Keep the history cut-off after renewal retrieval, as before.
-        as-of (Instant/now)
-        fee-start (.minusMonths (YearMonth/from (.atZone as-of ZoneOffset/UTC)) 12)
-        history-start (if (.isBefore ^YearMonth start fee-start) start fee-start)
-        history (actual-receipts history-start as-of)
-        report-since (.toEpochSecond (.atStartOfDay (.atDay ^YearMonth start 1) ZoneOffset/UTC))
-        fee-since (.toEpochSecond (.atStartOfDay (.atDay fee-start 1) ZoneOffset/UTC))]
-    (log/info "Cashflow Stripe snapshot loaded"
-              {:milliseconds (quot (- (System/nanoTime) began) 1000000)
-               :subscriptions (count subs) :receipts (count history)})
-    {:as-of as-of :subscriptions subs
-     :actuals (filterv #(>= (:created %) report-since) history)
-     :fee-history (filterv #(>= (:created %) fee-since) history)}))
-
-(defn cached-snapshot
-  "One background refresh per dyno. Never hold the cache lock during Stripe I/O."
-  [cache cache-key load-data now]
-  (locking cache
-    (let [cached @cache
-          matches? (= cache-key (:key cached))
-          fresh? (and matches? (:expires-at cached) (.isBefore now (:expires-at cached)))
-          retry? (or (not matches?) (nil? (:retry-at cached))
-                     (not (.isBefore now (:retry-at cached))))]
-      (when (and (not fresh?) (not (:loading? cached)) retry?)
-        (reset! cache (assoc (when matches? cached) :key cache-key :loading? true :error nil))
-        (future
-          (try
-            (let [data (load-data)
-                  finished (Instant/now)]
-              (reset! cache {:key cache-key :data data
-                             :expires-at (.plusSeconds finished 300)
-                             :usable-until (.plusSeconds finished 86400)}))
-            (catch Exception _
-              ;; Do not log Stripe responses or credentials.
-              (log/warn "Cashflow Stripe refresh failed; retry available in 30 seconds")
-              (swap! cache assoc :loading? false :error true
-                     :retry-at (.plusSeconds (Instant/now) 30))))))
-      (let [current @cache]
-        (if (and (= cache-key (:key current)) (:data current)
-                 (.isBefore now (:usable-until current)))
-          (assoc (:data current) :refreshing? (boolean (:loading? current))
-                 :refresh-failed? (boolean (:error current)))
-          (throw (ex-info (if (:error current)
-                            "Stripe refresh failed. Retrying shortly."
-                            "Loading Stripe subscriptions and payment history. This page will refresh automatically.")
-                          {:type ::loading})))))))
-
-(defn snapshot [start]
-  (cached-snapshot snapshot-cache [start Stripe/apiKey]
-                   #(load-snapshot start) (Instant/now)))
 
 (defmethod ig/init-key ::stripe
   [_ {:keys [secret-key]}]

@@ -32,7 +32,7 @@ on every request and disable caching. Signup and account updates cannot set role
 ### Cloudflare Access setup
 
 Production also requires a valid Cloudflare Access application JWT on both admin
-routes. Access adds a separate Google sign-in; it does not create a member session.
+routes. Access adds a separate email one-time code check; it does not create a member session.
 Admins still use the existing email-link login and must have `members.is_admin = TRUE`.
 The Access identity and member session are checked independently. Public member
 routes and Stripe webhooks keep their existing authentication.
@@ -43,14 +43,11 @@ Configure this externally before enabling the admin pages in production:
    self-hosted Access application for `members.clojuriststogether.org/admin/*`.
    This path covers both `/admin/cashflow` and `/admin/cashflow.xlsx`. If a bare
    `/admin` route is added later, protect that path separately too.
-2. Configure the [Google identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/google/)
-   with a Google OAuth Web client. Its authorized JavaScript origin is
-   `https://TEAM.cloudflareaccess.com`; its callback is
-   `https://TEAM.cloudflareaccess.com/cdn-cgi/access/callback`. Put the Google
-   client ID and client secret in the Cloudflare dashboard; the app does not need
-   the Google client secret.
-3. Select only Google for this Access application. Disable **Accept all available
-   identity providers** and exclude One-time PIN and all other login methods.
+2. Configure the [One-time PIN identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/).
+   Cloudflare emails a single-use code to approved addresses; no Google OAuth
+   client or client secret is needed.
+3. Select only One-time PIN for this Access application. Disable **Accept all
+   available identity providers** and use a 24-hour session duration.
 4. Create an Allow policy with an **Include → Emails** rule containing exactly
    `daniel@clojuriststogether.org` and `kdavis@clojuriststogether.org`.
    Do not use Everyone, an entire email domain, Bypass, or service-token policies
@@ -59,8 +56,8 @@ Configure this externally before enabling the admin pages in production:
    environment:
 
    ```
-   CLOUDFLARE_ACCESS_ISSUER=https://TEAM.cloudflareaccess.com
-   CLOUDFLARE_ACCESS_AUDIENCE=APPLICATION_AUD_TAG
+   CLOUDFLARE_ACCESS_ISSUER=https://clojurists-together.cloudflareaccess.com
+   CLOUDFLARE_ACCESS_AUDIENCE=46e0a7ed0bd5c26add42c8341362999a156e7b4038b997c517146352bddf5cb3
    ```
 
 The issuer and audience are identifiers, not secrets. The issuer must be an HTTPS
@@ -80,10 +77,9 @@ omit both settings. Supplying both settings enforces Access locally too; partial
 local configuration is rejected. The local read-only cashflow preview launcher
 remains separate and does not use these production authentication gates.
 
-These instructions do not configure Cloudflare or Google, set production
-environment variables, or deploy the app. The actual team origin and application
-AUD tag must still be supplied during external setup; use the two email addresses
-above for the allowlist.
+Cloudflare's email-code provider, application, two-address allow policy, and the
+production environment variables are configured. The member hostname is proxied;
+production enforces Access JWT validation in addition to the member admin role.
 
 The default view covers January of this year through December of next year.
 Completed months contain actual subscription payments less recorded Stripe fees.
@@ -211,19 +207,45 @@ lein run -m org.clojuriststogether.app.admin.mailchimp-apply
 bin/send-test-webhook
 ```
 
-### Cashflow snapshot loading
+### Cashflow Stripe sync
 
-Cashflow requests never wait for Stripe history. A cold cache starts one background
-load per dyno and returns a loading page that refreshes every five seconds. Once
-loaded, scenarios and exports reuse the snapshot. After five minutes, a visit
-starts a refresh while serving the previous complete snapshot and its timestamp.
-Refresh failures retain the previous snapshot for up to 24 hours, display a
-warning, and wait 30 seconds before retrying. Incomplete exports return 503 with
-Retry-After rather than generating an empty spreadsheet.
+The forecast and Excel export read a durable snapshot from Postgres; neither calls
+Stripe. Migration 005 creates the snapshot and a webhook work queue. The production
+Integrant worker starts automatically, checks every 30 seconds, and uses a Postgres
+advisory lock so only one worker syncs during overlapping deploys or across dynos.
+Development does not start the worker automatically.
 
-This cache is bounded to one reporting start date and is held in memory. Dyno
-restarts require another initial load. Different reporting start dates load their
-own history, with only one load running at a time. No Stripe writes are performed.
-Logs record snapshot duration and subscription/receipt counts, without customer
-or payment details. A durable database snapshot would avoid loading again after
-restarts if the initial wait becomes inconvenient.
+On first deployment, the worker imports history from twelve months before the
+current month. Requesting an earlier forecast year records a request to extend
+that history. Until coverage is available the page returns a loading view and
+refreshes every five seconds; an export returns 503 with Retry-After.
+
+Verified webhooks insert an event ID, type, and object ID into the durable queue.
+Duplicate event IDs do not create extra work. The worker fetches current Stripe
+objects rather than trusting event order. It refreshes subscriptions and the last
+seven days of charges on queued work or after five minutes. Changed charges older
+than that overlap are fetched individually. Once per day it reconciles the entire
+stored history range. Stripe payment fees that are not yet available cause a retry,
+not an estimated historical amount. Failed syncs preserve the previous snapshot,
+leave events pending, and retry after 60 seconds. The page displays the last sync
+time and any failure. All Stripe access from this sync is read-only.
+
+Subscription and receipt changes publish in one short database transaction. Events
+received during a sync remain pending for the next pass. Restarts retain both the
+last complete snapshot and unfinished work. Logs include timings/counts and error
+classes, without logging API responses or credentials.
+
+The existing `/webhook/stripe` endpoint must subscribe to the event types in
+`cashflow-sync/event-types`, in addition to its existing membership events. It stays
+outside Cloudflare Access. No separate worker dyno, Redis, or Scheduler add-on is
+needed; at least one web dyno must be running for background syncs to execute.
+
+Run the Postgres integration tests with a disposable local database:
+
+```
+CASHFLOW_SYNC_TEST_DATABASE_URL=jdbc:postgresql://localhost:5432/test lein test
+```
+
+The integration test creates and drops its own uniquely named schema. Without
+that variable, only the database integration test is skipped. Unit and signed
+webhook tests still run.
