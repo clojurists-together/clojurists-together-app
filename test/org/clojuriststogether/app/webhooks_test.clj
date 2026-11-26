@@ -11,6 +11,7 @@
            (javax.crypto.spec SecretKeySpec)))
 
 (def secret "whsec_test_secret")
+(def secondary-secret "whsec_secondary_test_secret")
 (def customer-id "cus_HGNGsBYlu1rIJB")
 (def plan-id "plan_GY8ntpqaHEUlza")
 (def created-event (slurp (io/resource "webhooks/customer.subscription.created.json")))
@@ -37,11 +38,12 @@
 (defn post-webhook
   "POSTs through the app's real route tree. Returns the response status and error,
   and every SQL statement sent to the database."
-  [{:keys [body signature webhook-secret]}]
+  [{:keys [body signature webhook-secret webhook-secondary-secret]}]
   (let [writes (atom [])
         handler (ig/init-key :app/handler {:db ::db
                                            :profile :test
-                                           :stripe-webhook-secret webhook-secret})
+                                           :stripe-webhook-secret webhook-secret
+                                           :stripe-webhook-secondary-secret webhook-secondary-secret})
         request (cond-> {:request-method :post
                          :scheme :http
                          :server-name "localhost"
@@ -112,12 +114,15 @@
              (post-webhook {:body body :signature signature :webhook-secret secret}))))))
 
 (deftest an-unconfigured-secret-rejects-every-request-and-changes-nothing
-  (doseq [webhook-secret [nil ""]]
-    (testing (pr-str webhook-secret)
+  (doseq [webhook-secret [nil "" " \t"]
+          webhook-secondary-secret [nil "" " \t"]
+          signing-secret ["whsec_guess" " " "\t"]]
+    (testing (pr-str [webhook-secret webhook-secondary-secret signing-secret])
       (is (= {:status 400 :error "Invalid Stripe signature" :writes []}
              (post-webhook {:body forged-event
-                            :signature (signature-header forged-event "whsec_guess")
-                            :webhook-secret webhook-secret}))))))
+                            :signature (signature-header forged-event signing-secret)
+                            :webhook-secret webhook-secret
+                            :webhook-secondary-secret webhook-secondary-secret}))))))
 
 (defn subscription-event [object]
   (-> (json/parse-string created-event true)
@@ -213,3 +218,64 @@
     (is (= (queued-result event 200 nil
                           ["UPDATE members SET subscription_plan = NULL WHERE stripe_customer_id = ?" customer-id])
            (signed-event-result event)))))
+
+(deftest overlapping-signing-secrets-preserve-legacy-and-modern-membership-events
+  (doseq [signing-secret [secret secondary-secret]
+          template [(json/parse-string created-event true)
+                    (subscription-event modern-subscription)]
+          type ["customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted"]]
+    (testing (str type " " (:api_version template) " "
+                  (if (= secret signing-secret) "primary" "secondary"))
+      (let [event (assoc template :type type)
+            body (json/generate-string event)
+            deleted? (= type "customer.subscription.deleted")
+            membership-write (if deleted?
+                               ["UPDATE members SET subscription_plan = NULL WHERE stripe_customer_id = ?"
+                                customer-id]
+                               ["UPDATE members SET subscription_plan = ? WHERE stripe_customer_id = ?"
+                                (or (get-in template [:data :object :items :data 0 :price :id]) plan-id)
+                                customer-id])]
+        (is (= (queued-result event 200 nil membership-write)
+               (post-webhook {:body body
+                              :signature (signature-header body signing-secret)
+                              :webhook-secret secret
+                              :webhook-secondary-secret secondary-secret})))))))
+
+(deftest overlapping-signing-secrets-reject-unsigned-and-invalid-requests
+  (doseq [[requests error] [[unsigned-requests "Missing Stripe signature"]
+                            [(conj wrongly-signed-requests
+                                   ["expired secondary signature" forged-event
+                                    (signature-header forged-event secondary-secret (- (now-seconds) 3600))]
+                                   ["forged body with secondary signature" forged-event
+                                    (signature-header created-event secondary-secret)])
+                             "Invalid Stripe signature"]]
+          [description body signature] requests]
+    (testing description
+      (is (= {:status 400 :error error :writes []}
+             (post-webhook {:body body :signature signature
+                            :webhook-secret secret
+                            :webhook-secondary-secret secondary-secret}))))))
+
+(deftest blank-secondary-secret-preserves-primary-verification
+  (doseq [blank-secret [nil "" " \t"]]
+    (testing (pr-str blank-secret)
+      (is (= (post-webhook {:body created-event
+                            :signature (signature-header created-event secret)
+                            :webhook-secret secret})
+             (post-webhook {:body created-event
+                            :signature (signature-header created-event secret)
+                            :webhook-secret secret
+                            :webhook-secondary-secret blank-secret})))
+      (is (= {:status 400 :error "Invalid Stripe signature" :writes []}
+             (post-webhook {:body forged-event
+                            :signature (signature-header forged-event " ")
+                            :webhook-secret secret
+                            :webhook-secondary-secret blank-secret}))))))
+
+(deftest secondary-signature-is-accepted-without-a-primary-secret
+  (is (= (post-webhook {:body created-event
+                        :signature (signature-header created-event secret)
+                        :webhook-secret secret})
+         (post-webhook {:body created-event
+                        :signature (signature-header created-event secondary-secret)
+                        :webhook-secondary-secret secondary-secret}))))

@@ -1,5 +1,6 @@
 (ns org.clojuriststogether.app.routes
   (:require [reitit.ring :as ring]
+            [clojure.string :as str]
             [ring.util.http-response :as response]
             [ring.middleware.defaults :as defaults]
             [org.clojuriststogether.app.utils :as utils]
@@ -50,8 +51,11 @@
         (assoc :proxy true))
     (defaults store)))
 
-(defmethod ig/init-key :app/handler [_ {:keys [stripe-webhook-secret db store profile email-service cloudflare-access]}]
+(defmethod ig/init-key :app/handler [_ {:keys [stripe-webhook-secret stripe-webhook-secondary-secret
+                                               db store profile email-service cloudflare-access]}]
   (let [wrap-access (access/middleware profile cloudflare-access)
+        accepted-signing-secrets (filterv (complement str/blank?)
+                                          [stripe-webhook-secret stripe-webhook-secondary-secret])
         routes [["" {:middleware [:parameters
                                   :format-negotiate
                                   :format-response
@@ -70,7 +74,7 @@
                 ["" {:middleware [:exception
                                   :format-response
                                   :coerce-response]}
-                 (webhooks/stripe-webhook db stripe-webhook-secret)]]
+                 (webhooks/stripe-webhook db accepted-signing-secrets)]]
         router (ring/router
                 routes
                 ;; TODO: disable diffs in prod
