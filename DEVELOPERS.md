@@ -87,9 +87,8 @@ SDK; it never fetches current subscription state to replace the event snapshot.
 Duplicate Stripe event IDs insert one outbox row. Failed sends retry after one
 minute, and successful sends are not repeated. A network timeout or crash after
 Slack accepts a message but before the database records success can still cause
-a duplicate; incoming webhooks have no idempotency key. Messages include the
-Stripe event ID for diagnosis. `last_error` stores only exception class/HTTP
-status. Monitor pending rows and attempts in `stripe_slack_notifications`.
+a duplicate; incoming webhooks have no idempotency key. Use the outbox event ID
+to diagnose retries. `last_error` stores only exception class/HTTP status. Monitor pending rows and attempts in `stripe_slack_notifications`.
 
 With the URL unset, notification work remains queued. Run the real local HTTP,
 Slack receiver and PostgreSQL tests with a disposable database:

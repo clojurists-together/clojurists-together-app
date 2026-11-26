@@ -34,14 +34,17 @@
 (deftest corporate-message-separates-customer-product-and-plan
   (let [m (rendered (event "created" subscription {}))]
     (doseq [text ["New subscription" "Acme Corporation" "billing@acme.example" "Corporate membership" "Annual" "USD 1200 per year"]]
-      (is (.contains (:text m) text)))
-    (is (= "plain_text" (get-in m [:blocks 1 :text :type])))
-    (is (.contains (get-in m [:blocks 3 :elements 0 :text]) "https://dashboard.stripe.com/subscriptions/sub_example"))))
+      (is (.contains (get-in m [:attachments 0 :fallback]) text)))
+    (is (= "rich_text" (get-in m [:attachments 0 :blocks 1 :type])))
+    (is (= "*Amount*\nUSD 1,200.00" (get-in m [:attachments 0 :blocks 2 :fields 2 :text])))
+    (is (.contains (get-in m [:attachments 0 :blocks 3 :elements 0 :text]) "https://dashboard.stripe.com/subscriptions/sub_example"))))
 
 (deftest scheduled-cancellation-includes-the-effective-date
   (let [m (rendered (event "updated" (assoc subscription :cancel_at_period_end true) {:cancel_at_period_end false}))]
-    (is (.contains (:text m) "Subscription cancellation scheduled"))
-    (is (.contains (:text m) "remains active until 2027-01-01 00:00 UTC"))))
+    (is (.contains (get-in m [:attachments 0 :fallback]) "Subscription cancellation scheduled"))
+    (is (.contains (get-in m [:attachments 0 :fallback]) "remains active until 2027-01-01 00:00 UTC"))
+    (is (= "#E59D23" (get-in m [:attachments 0 :color])))
+    (is (.contains (get-in m [:attachments 0 :blocks 3 :text :text]) "<!date^1798761600^{date_long_pretty} at {time}|"))))
 
 (deftest quantities-currencies-intervals-and-legacy-plans
   (doseq [[currency amount qty recurring expected]
@@ -50,21 +53,21 @@
            ["kwd" 1234 1 {:interval "year"} "KWD 1.234 per year"]]]
     (let [s (assoc-in subscription [:items :data 0] {:quantity qty :price {:id "price_x" :product "prod_x" :currency currency
                                                                            :unit_amount amount :recurring recurring}})]
-      (is (.contains (:text (rendered (event "created" s {}))) expected))))
+      (is (.contains (get-in (rendered (event "created" s {})) [:attachments 0 :fallback]) expected))))
   (let [s (-> subscription (dissoc :items) (assoc :plan {:id "legacy" :nickname "Monthly" :product "prod_x" :currency "usd" :unit_amount 500 :interval "month"}))]
-    (is (.contains (:text (rendered (event "deleted" s {}))) "Monthly — USD 5 per month"))))
+    (is (.contains (get-in (rendered (event "deleted" s {})) [:attachments 0 :fallback]) "Monthly — USD 5 per month"))))
 
 (deftest display-names-cannot-inject-slack-mentions
   (with-redefs [jdbc/query (fn [& _] [])
                 stripe/notification-object (fn [kind _] (case kind :customer {:name "<!channel>"} :product {:name "<evil>"}))]
     (let [m (slack/message {} (event "created" subscription {}))]
-      (is (= "plain_text" (get-in m [:blocks 1 :text :type])))
-      (is (= "<!channel>" (get-in m [:blocks 1 :text :text]))))))
+      (is (= "rich_text" (get-in m [:attachments 0 :blocks 1 :type])))
+      (is (= "<!channel>" (get-in m [:attachments 0 :blocks 1 :elements 0 :elements 0 :text]))))))
 
 (deftest existing-new-customer-notification-is-preserved
   (let [e {:id "evt_customer" :type "customer.created" :livemode true
            :data {:object {:id "cus_example" :name "Named Customer" :email "customer@example.org"}}}
         m (rendered e)]
     (is (= :customer-created (slack/notification-kind e)))
-    (is (.contains (:text m) "New customer\nNamed Customer (customer@example.org)"))
-    (is (.contains (get-in m [:blocks 2 :elements 0 :text]) "customers/cus_example"))))
+    (is (.contains (get-in m [:attachments 0 :fallback]) "New customer\nNamed Customer (customer@example.org)"))
+    (is (.contains (get-in m [:attachments 0 :blocks 2 :elements 0 :text]) "customers/cus_example"))))
