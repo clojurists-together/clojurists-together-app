@@ -118,3 +118,98 @@
              (post-webhook {:body forged-event
                             :signature (signature-header forged-event "whsec_guess")
                             :webhook-secret webhook-secret}))))))
+
+(defn subscription-event [object]
+  (-> (json/parse-string created-event true)
+      (assoc :api_version "2026-11-18.endive")
+      (assoc-in [:data :object] (merge {:id "sub_legacy" :object "subscription"} object))))
+
+(defn signed-event-result [event]
+  (let [body (json/generate-string event)]
+    (post-webhook {:body body
+                   :signature (signature-header body secret)
+                   :webhook-secret secret})))
+
+(defn queued-result [event status error & membership-writes]
+  {:status status
+   :error error
+   :writes (into [["INSERT INTO cashflow_stripe_events (id,event_type,object_id) VALUES (?,?,?) ON CONFLICT (id) DO NOTHING"
+                   (:id event) (:type event) (get-in event [:data :object :id])]]
+                 membership-writes)})
+
+(def modern-subscription
+  {:id "sub_modern" :object "subscription" :customer customer-id
+   :status "active"
+   :items {:object "list" :data [{:id "si_member" :object "subscription_item"
+                                  :price {:id "price_member" :object "price"}}]
+           :has_more false}})
+
+(deftest signed-modern-subscriptions-store-the-price-with-either-billing-mode
+  (doseq [mode ["classic" "flexible"]
+          type ["customer.subscription.created" "customer.subscription.updated"]]
+    (testing (str mode " " type " queues the event before updating membership")
+      (let [event (assoc (subscription-event (assoc modern-subscription :billing_mode {:type mode})) :type type)]
+        (is (= (queued-result event 200 nil
+                              ["UPDATE members SET subscription_plan = ? WHERE stripe_customer_id = ?"
+                               "price_member" customer-id])
+               (signed-event-result event))))))
+  (testing "modern items preserve a legacy Price id and existing membership mapping"
+    (let [event (subscription-event (assoc-in modern-subscription [:items :data 0 :price :id] plan-id))]
+      (is (= (queued-result event 200 nil
+                            ["UPDATE members SET subscription_plan = ? WHERE stripe_customer_id = ?"
+                             plan-id customer-id])
+             (signed-event-result event))))))
+
+(deftest signed-events-preserve-custom-legacy-identifiers
+  (doseq [id ["plan_legacy-monthly" "plan_legacy_monthly" "custom-monthly" "custom'; --"]
+          object [{:customer customer-id :plan {:id id}}
+                  (assoc-in modern-subscription [:items :data 0 :price :id] id)]
+          type ["customer.subscription.created" "customer.subscription.updated"]]
+    (testing (str id " " type " " (if (:items object) "modern item" "legacy Plan"))
+      (let [event (assoc (subscription-event object) :type type)]
+        (is (= (queued-result event 200 nil
+                              ["UPDATE members SET subscription_plan = ? WHERE stripe_customer_id = ?"
+                               id customer-id])
+               (signed-event-result event)))))))
+
+(deftest signed-invalid-subscriptions-fail-without-changing-membership
+  (doseq [[description object]
+          [["nil legacy Plan id" {:customer customer-id :plan {:id nil}}]
+           ["empty legacy Plan id" {:customer customer-id :plan {:id ""}}]
+           ["blank legacy Plan id" {:customer customer-id :plan {:id " \t"}}]
+           ["legacy Plan id is a collection" {:customer customer-id :plan {:id ["custom-monthly"]}}]
+           ["missing Price and legacy Plan" (dissoc modern-subscription :items)]
+           ["no items" (assoc-in modern-subscription [:items :data] [])]
+           ["several items" (update-in modern-subscription [:items :data] conj {:price {:id "price_second"}})]
+           ["truncated items" (assoc-in modern-subscription [:items :has_more] true)]
+           ["item is not an object" (assoc-in modern-subscription [:items :data] ["price_member"])]
+           ["missing modern Price id" (assoc-in modern-subscription [:items :data 0 :price] {})]
+           ["Price is a scalar" (assoc-in modern-subscription [:items :data 0 :price] "price_member")]
+           ["Price id is SQL" (assoc-in modern-subscription [:items :data 0 :price :id] {:raw "'price_member'"})]
+           ["Price id is a collection" (assoc-in modern-subscription [:items :data 0 :price :id] ["price_member"])]
+           ["empty Price id" (assoc-in modern-subscription [:items :data 0 :price :id] "")]
+           ["blank Price id" (assoc-in modern-subscription [:items :data 0 :price :id] " \t")]
+           ["conflicting legacy id" (assoc modern-subscription :plan {:id plan-id})]
+           ["nil modern id cannot fall back to legacy" (-> modern-subscription
+                                                           (assoc :plan {:id plan-id})
+                                                           (assoc-in [:items :data 0 :price :id] nil))]
+           ["blank modern id cannot fall back to legacy" (-> modern-subscription
+                                                             (assoc :plan {:id plan-id})
+                                                             (assoc-in [:items :data 0 :price :id] " "))]
+           ["malformed modern Price cannot fall back to legacy" (-> modern-subscription
+                                                                    (assoc :plan {:id plan-id})
+                                                                    (assoc-in [:items :data 0 :price] "custom-monthly"))]
+           ["missing customer" (dissoc modern-subscription :customer)]
+           ["customer is SQL" (assoc modern-subscription :customer {:raw "'cus_member'"})]
+           ["malformed customer" (assoc modern-subscription :customer "cus_")]]]
+    (testing description
+      (let [event (subscription-event object)]
+        (is (= (queued-result event 400 "Invalid Stripe subscription identifiers")
+               (signed-event-result event)))))))
+
+(deftest signed-deletion-clears-without-requiring-subscription-items
+  (let [event (assoc (subscription-event (dissoc modern-subscription :items))
+                     :type "customer.subscription.deleted")]
+    (is (= (queued-result event 200 nil
+                          ["UPDATE members SET subscription_plan = NULL WHERE stripe_customer_id = ?" customer-id])
+           (signed-event-result event)))))

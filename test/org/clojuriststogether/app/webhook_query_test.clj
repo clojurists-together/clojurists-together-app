@@ -26,7 +26,7 @@
   (are [customer plan-id]
        (let [executed (atom false)]
          (with-redefs [jdbc/execute! (fn [_ _] (reset! executed true))]
-           (is (thrown-with-msg? clojure.lang.ExceptionInfo #"must be scalars"
+           (is (thrown-with-msg? clojure.lang.ExceptionInfo #"Invalid Stripe subscription identifiers"
                                  (webhooks/handle-subscription-event
                                   nil (event "customer.subscription.updated" customer plan-id)))))
          (not @executed))

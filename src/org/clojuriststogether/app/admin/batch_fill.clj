@@ -9,7 +9,8 @@
                                    "name" name})
         customer-id (.getId customer)
         _ (Subscription/create {"customer" customer-id
-                                "items" [{"plan" subscription_plan}]
+                                "items" [{"price" subscription_plan "quantity" 1}]
+                                "billing_mode" {"type" "flexible"}
                                 "trial_period_days" 30})
         member (->> {:update :members
                      :set {:stripe_customer_id customer-id}
