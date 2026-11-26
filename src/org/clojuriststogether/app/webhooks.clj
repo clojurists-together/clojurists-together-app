@@ -50,18 +50,23 @@
 
 (defn- verified-payload
   "Returns the parsed body, or nil unless signature is valid for it."
-  [body signature webhook-secret]
+  [body signature accepted-signing-secrets]
   (try
-    (Webhook/constructEvent body signature webhook-secret)
-    (json/parse-string body true)
+    (when (some (fn [secret]
+                  (try
+                    (Webhook/constructEvent body signature secret)
+                    true
+                    (catch Exception _ false)))
+                accepted-signing-secrets)
+      (json/parse-string body true))
     (catch Exception _ nil)))
 
-(defn stripe-webhook [db webhook-secret]
+(defn stripe-webhook [db accepted-signing-secrets]
   ["/webhook/stripe"
    {:post
     {:handler (fn [req]
                 (let [signature (get-in req [:headers "stripe-signature"])
-                      payload (verified-payload (slurp (:body req)) signature webhook-secret)]
+                      payload (verified-payload (slurp (:body req)) signature accepted-signing-secrets)]
                   (cond
                     (str/blank? signature)
                     (response/bad-request {:error "Missing Stripe signature"})

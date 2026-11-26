@@ -8,6 +8,7 @@
  :app/handler {:cloudflare-access {:issuer #env "CLOUDFLARE_ACCESS_ISSUER"
                                    :audience #env "CLOUDFLARE_ACCESS_AUDIENCE"}
                :stripe-webhook-secret #env "STRIPE_WEBHOOK_SECRET"
+               :stripe-webhook-secondary-secret #env "STRIPE_WEBHOOK_SECONDARY_SECRET"
                :db #ig/ref :org.clojuriststogether.app.db/hikari-cp
                :store #ig/ref :app/session-store
                :email-service #ig/ref :org.clojuriststogether.app.email/email-service

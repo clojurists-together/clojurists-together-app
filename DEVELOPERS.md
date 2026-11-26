@@ -14,6 +14,7 @@ SESSION_COOKIE_KEY=
 JDBC_DATABASE_URL= # If you want to use a different dev db to the default set in config.edn
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
+STRIPE_WEBHOOK_SECONDARY_SECRET= # Optional during webhook endpoint replacement
 ```
 
 ## Admin cashflow forecast
@@ -201,11 +202,27 @@ lein run -m org.clojuriststogether.app.admin.mailchimp-apply
 
 ## Testing webhooks
 
-`/webhook/stripe` only accepts requests signed with `STRIPE_WEBHOOK_SECRET`. To send the sample event, signed with the same secret the server is running with:
+`/webhook/stripe` accepts requests signed with `STRIPE_WEBHOOK_SECRET` or the optional
+`STRIPE_WEBHOOK_SECONDARY_SECRET`. Blank values are ignored; no configured signing
+secret rejects every request. To send the sample event, signed with the primary
+secret the server is running with:
 
 ```console
 bin/send-test-webhook
 ```
+
+For an endpoint API version upgrade, deploy support for both secrets first. Create
+the replacement endpoint with the same URL and required event types, then
+immediately disable it. Stripe's creation API enables new endpoints by default.
+Configure its signing secret as `STRIPE_WEBHOOK_SECONDARY_SECRET` before enabling
+it. Verify a real signed delivery and the expected database effects before disabling
+the old endpoint. Then promote the new secret to `STRIPE_WEBHOOK_SECRET` and remove
+the secondary variable in the same configuration update. Keep the disabled old
+endpoint for rollback. Never put signing secrets in source files or logs.
+
+If rollback is needed after promotion, restore both secrets before re-enabling the
+old endpoint. Keep the new endpoint active until old-endpoint delivery succeeds,
+then disable the new endpoint and restore the old primary-only configuration.
 
 ### Cashflow Stripe sync
 
