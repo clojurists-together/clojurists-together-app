@@ -9,6 +9,8 @@
             [org.clojuriststogether.app.stripe :as stripe])
   (:import (java.time Instant ZoneOffset)
            (java.time.format DateTimeFormatter)
+           (java.text NumberFormat)
+           (java.util Locale)
            (java.util.concurrent Executors ScheduledExecutorService TimeUnit ThreadFactory)))
 
 (def event-types
@@ -46,9 +48,6 @@
 (defn- escape-text [value]
   (-> (str value) (str/replace "&" "&amp;") (str/replace "<" "&lt;") (str/replace ">" "&gt;")))
 
-(defn- display-text [value]
-  {:type "plain_text" :text (subs (str value) 0 (min 2000 (count (str value))))})
-
 (def zero-decimal-currencies
   #{"bif" "clp" "djf" "gnf" "jpy" "kmf" "krw" "mga" "pyg" "rwf" "ugx" "vnd" "vuv" "xaf" "xof" "xpf"})
 
@@ -61,11 +60,16 @@
         recurring (:recurring price)
         interval (or (:interval recurring) (:interval price))
         n (or (:interval_count recurring) (:interval_count price) 1)]
-    (str (if amount
-           (str (str/upper-case currency) " " (.toPlainString (.stripTrailingZeros (.movePointLeft (* (bigdec amount) (bigdec quantity)) digits))))
-           "Usage-based or tiered amount")
-         (when interval (if (= n 1) (str " per " interval) (str " every " n " " interval "s")))
-         (when (not= quantity 1) (str " (quantity " quantity ")")))))
+    (let [major (when amount (.movePointLeft (* (bigdec amount) (bigdec quantity)) digits))
+          formatter (doto (NumberFormat/getNumberInstance Locale/US)
+                      (.setMinimumFractionDigits digits)
+                      (.setMaximumFractionDigits (max digits (if major (.scale major) 0))))
+          period (when interval (if (= n 1) (str "per " interval) (str "every " n " " interval "s")))
+          quantity-label (when (not= quantity 1) (str " (quantity " quantity ")"))]
+      {:amount (if major (str (str/upper-case currency) " " (.format formatter major)) "Usage-based or tiered")
+       :period (str (when period (str/capitalize period)) quantity-label)
+       :summary (str (if major (str (str/upper-case currency) " " (.toPlainString (.stripTrailingZeros major))) "Usage-based or tiered amount")
+                     (when period (str " " period)) quantity-label)})))
 
 (defn- item-details [item]
   (let [snapshot (or (:price item) (:plan item))
@@ -73,7 +77,8 @@
         product (:product price)
         product (if (map? product) product (when product (stripe/notification-object :product product)))
         plan (or (not-empty (:nickname price)) (not-empty (:lookup_key price)) (:id price))]
-    (str (or (:name product) "Unknown product") " — " plan " — " (amount-label price (or (:quantity item) 1)))))
+    (merge {:product (or (:name product) "Unknown product") :plan plan}
+           (amount-label price (or (:quantity item) 1)))))
 
 (defn message
   "Formats the event snapshot, enriching names without reading current subscription state."
@@ -106,18 +111,46 @@
                        :cancelled "Subscription has ended."
                        nil)
         customer-label (str name (when (and email (not= name email)) (str " (" email ")")))
-        text (str title "\n" customer-label "\n" (str/join "\n" details)
+        text (str title "\n" customer-label "\n" (str/join "\n" (map #(str (:product %) " — " (:plan %) " — " (:summary %)) details))
                   (when cancellation (str "\n" cancellation)))
         dashboard (str "https://dashboard.stripe.com/" (when (false? (:livemode event)) "test/") (if new-customer? "customers/" "subscriptions/") (:id subscription))]
-    {:text text
-     :mrkdwn false
+    {:mrkdwn false
      :unfurl_links false
      :unfurl_media false
-     :blocks (vec (concat [{:type "header" :text (display-text title)}
-                           {:type "section" :text (display-text customer-label)}]
-                          (for [detail details] {:type "section" :text (display-text detail)})
-                          (when cancellation [{:type "section" :text (display-text cancellation)}])
-                          [{:type "context" :elements [{:type "mrkdwn" :text (str "<" dashboard (if new-customer? "|View customer> · " "|View subscription> · ") (escape-text (:id event)))}]}]))}))
+     :attachments
+     [{:fallback text
+       :color (case kind
+                (:created :customer-created :cancellation-reversed) "#2E9E5B"
+                :cancellation-scheduled "#E59D23"
+                :cancelled "#D14343"
+                "#3B82F6")
+       :blocks
+       (vec
+        (concat
+         [{:type "section" :text {:type "mrkdwn" :text (str "*" title "*")}}
+          {:type "rich_text"
+           :elements [{:type "rich_text_section"
+                       :elements (cond-> [{:type "link"
+                                           :url (str "https://dashboard.stripe.com/" (when (false? (:livemode event)) "test/") "customers/" customer-id)
+                                           :text name :style {:bold true}}]
+                                   (and email (not= name email))
+                                   (conj {:type "text" :text (str "  ·  " email)}))}]}]
+         (for [{:keys [product plan amount period]} details]
+           {:type "section"
+            :fields (mapv (fn [[label value]] {:type "mrkdwn" :verbatim true
+                                               :text (str "*" label "*\n" (escape-text value))})
+                          [["Membership" product] ["Plan" plan] ["Amount" amount] ["Billing period" period]])})
+         (when cancellation
+           [{:type "section"
+             :text {:type "mrkdwn"
+                    :text (if (and (= kind :cancellation-scheduled) end)
+                            (str "*Access ends*\n<!date^" end "^{date_long_pretty} at {time}|"
+                                 (.format (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm 'UTC'") (.atOffset (Instant/ofEpochSecond end) ZoneOffset/UTC))
+                                 ">\nMembership remains active until then.")
+                            (escape-text cancellation))}}])
+         [{:type "context"
+           :elements [{:type "mrkdwn"
+                       :text (str "<" dashboard (if new-customer? "|View customer in Stripe>" "|View subscription in Stripe>"))}]}]))}]}))
 
 (defn send-message! [url body]
   (let [response (http/post url {:body (json/generate-string body) :content-type :json
