@@ -55,6 +55,13 @@
               (is (= 2 (count-rows)))
               (is (= 200 (post (assoc-in (assoc scheduled :id "evt_metadata") [:data :previous_attributes] {:metadata {}}))))
               (is (= 2 (count-rows)))
+              (let [renewal (-> (fixtures/event "updated"
+                                                (assoc-in fixtures/subscription [:items :data 0 :current_period_end] 1801440000)
+                                                {:items (:items fixtures/subscription) :latest_invoice "in_previous"})
+                                (assoc :id "evt_renewal"))]
+                (is (= 200 (post renewal)))
+                (is (= "price_annual" (plan)) "Renewal webhook still updates membership normally")
+                (is (= 2 (count-rows)) "Date-only renewal does not queue a Slack message"))
               (with-redefs [stripe/notification-object (fn [kind _] (case kind :customer {:name "Corporate Customer" :email "billing@example.org"} :product {:name "Corporate membership"}))]
                 (slack/deliver-once! db hook)
                 (is (empty? @delivered))

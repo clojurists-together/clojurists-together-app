@@ -19,6 +19,9 @@
 (defn- cancellation-scheduled? [subscription]
   (or (true? (:cancel_at_period_end subscription)) (some? (:cancel_at subscription))))
 
+(defn- items-without-billing-periods [items]
+  (frequencies (map #(dissoc % :current_period_start :current_period_end) (:data items))))
+
 (defn notification-kind [{:keys [type data]}]
   (let [subscription (:object data)
         previous (:previous_attributes data)
@@ -31,8 +34,11 @@
       "customer.subscription.updated"
       (cond
         cancellation-changed? (if (cancellation-scheduled? subscription) :cancellation-scheduled :cancellation-reversed)
-        (some #(and (contains? previous %) (not= (get previous %) (get subscription %)))
-              [:items :plan :quantity :status :discount :discounts :pause_collection]) :updated)
+        (or (and (contains? previous :items)
+                 (not= (items-without-billing-periods (:items previous))
+                       (items-without-billing-periods (:items subscription))))
+            (some #(and (contains? previous %) (not= (get previous %) (get subscription %)))
+                  [:plan :quantity :status :discount :discounts :pause_collection])) :updated)
       nil)))
 
 (defn enqueue! [db event]

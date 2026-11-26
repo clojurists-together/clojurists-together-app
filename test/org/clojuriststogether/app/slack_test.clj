@@ -25,6 +25,33 @@
   (is (nil? (slack/notification-kind (event "updated" subscription {:metadata {}}))))
   (is (nil? (slack/notification-kind (event "updated" (assoc subscription :cancel_at_period_end true) {:status "active"})))))
 
+(deftest routine-renewals-do-not-notify
+  (let [previous-item (assoc (get-in subscription [:items :data 0])
+                             :id "si_example" :current_period_start 1796083200)
+        renewed-item (assoc previous-item :current_period_start 1798761600 :current_period_end 1801440000)
+        renewed (assoc-in subscription [:items :data] [renewed-item])
+        previous {:items {:data [previous-item]} :latest_invoice "in_previous"}
+        renewal (event "updated" renewed previous)]
+    (is (nil? (slack/notification-kind renewal)))
+    (testing "routine renewals never enter the Slack outbox"
+      (let [writes (atom [])]
+        (with-redefs [jdbc/execute! (fn [& args] (swap! writes conj args))]
+          (slack/enqueue! {} renewal))
+        (is (empty? @writes))))
+    (testing "meaningful changes during a renewal still notify"
+      (doseq [changed [(assoc-in renewed [:items :data 0 :quantity] 2)
+                       (assoc-in renewed [:items :data 0 :price :id] "price_monthly")
+                       (assoc-in renewed [:items :data 0 :discounts] ["di_example"])
+                       (assoc-in renewed [:items :data] [])]]
+        (is (= :updated (slack/notification-kind (event "updated" changed previous))))))
+    (is (= :updated (slack/notification-kind (event "updated" (assoc renewed :status "past_due")
+                                                    (assoc previous :status "active")))))
+    (is (= :cancellation-scheduled
+           (slack/notification-kind (event "updated" (assoc renewed :cancel_at_period_end true)
+                                           (assoc previous :cancel_at_period_end false)))))
+    (is (= :cancellation-reversed
+           (slack/notification-kind (event "updated" renewed (assoc previous :cancel_at_period_end true)))))))
+
 (defn rendered [e]
   (with-redefs [jdbc/query (fn [& _] [{:person_name "Local Person" :organization_name "Local Company" :email "local@example.org"}])
                 stripe/notification-object (fn [kind _] (case kind :customer {:name "Acme Corporation" :email "billing@acme.example"}
