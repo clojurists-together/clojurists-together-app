@@ -45,10 +45,16 @@
            " MRR")))
 
 (defn receipt-row [forecast currency [label values member]]
-  [:tr [:th.row-label {:scope "row"} (hu/escape-html label)
-        (when member
-          [:small.member-mrr.muted {:title "Current monthly recurring revenue, after recurring discounts and before Stripe fees. Cancellation scenarios do not change this reference amount."}
-           (mrr-label currency (:mrr member))])
+  [:tr [:th.row-label {:scope "row"}
+        [:span.member-identity
+         (if (:customer member)
+           [:a {:href (str "https://dashboard.stripe.com/customers/" (:customer member))
+                :target "_blank" :rel "noopener noreferrer"}
+            (hu/escape-html label)]
+           (hu/escape-html label))
+         (when member
+           [:small.member-mrr.muted {:title "Current monthly recurring revenue, after recurring discounts and before Stripe fees. Cancellation scenarios do not change this reference amount."}
+            (mrr-label currency (:mrr member))])]
         (when (:cancel-month member)
           [:div [:small.muted (str "Simulated cancellation: " (:cancel-month member) " ")]
            [:button.receipt-action {:type "button" :data-input (str "cancel-" (:id member))
@@ -95,8 +101,8 @@
      [:html {:lang "en"}
       [:head [:meta {:charset "utf-8"}] [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
        [:title "Cashflow forecast · Clojurists Together"]
-       [:script {:src "/js/cashflow.js" :defer true}]
-       [:link {:rel "stylesheet" :href "/css/cashflow.css"}]]
+       [:script {:src "/js/cashflow.js?v=1" :defer true}]
+       [:link {:rel "stylesheet" :href "/css/cashflow.css?v=2"}]]
       [:body
        [:nav [:a {:href "/manage"} "← Manage account"]]
        [:h1 "Cashflow forecast"]
@@ -195,7 +201,7 @@
            :headers (cond-> {"Content-Type" "text/html; charset=utf-8" "Retry-After" "5" "Cache-Control" "no-store"}
                       (not export?) (assoc "Refresh" "5"))
            :body (hiccup/html [:html [:head [:title "Loading cashflow"]
-                                      [:link {:rel "stylesheet" :href "/css/cashflow.css"}]]
+                                      [:link {:rel "stylesheet" :href "/css/cashflow.css?v=2"}]]
                                [:body [:h1 "Loading cashflow"] [:p (.getMessage e)]
                                 (when export? [:p "Return to the forecast and retry the export once loading finishes."])]])}
           ::invalid {:status 400 :body (.getMessage e)}
