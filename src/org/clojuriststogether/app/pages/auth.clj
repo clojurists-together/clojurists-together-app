@@ -11,7 +11,7 @@
             [clojure.java.jdbc :as jdbc]
             [org.clojuriststogether.app.sessions :as sessions]
             [clojure.spec.alpha :as s])
-  (:import (com.stripe.model Plan Product Customer)
+  (:import (com.stripe.model Price Product Customer)
            com.stripe.model.checkout.Session
            (com.stripe.exception InvalidRequestException)
            (java.util UUID)
@@ -51,7 +51,9 @@
                      "https://www.clojuriststogether.org/signup-success/"))
   ([customer-id plan-id success-url cancel-url]
    (com.stripe.model.checkout.Session/create {"customer" customer-id
-                                              "subscription_data" {"items" {"0" {"plan" plan-id}}}
+                                              "mode" "subscription"
+                                              "line_items" [{"price" plan-id "quantity" 1}]
+                                              "subscription_data" {"billing_mode" {"type" "flexible"}}
                                               "success_url" success-url
                                               "cancel_url" cancel-url})))
 
@@ -78,19 +80,32 @@
        (jdbc/query db)
        first))
 
-(defn retrieve-plan [plan-id]
-  (try (Plan/retrieve plan-id)
-       (catch InvalidRequestException e
-         (throw (ex-info "Plan not found" {:type :reitit.ring/response
-                                           :response {:status 422
-                                                      :body "<h1>Plan not found</h1>"}})))))
+(defn- membership-price? [^Price price]
+  (and (.getRecurring price)
+       (= "licensed" (.getUsageType (.getRecurring price)))
+       (= "per_unit" (.getBillingScheme price))
+       (some? (.getUnitAmount price))))
+
+(defn- plan-not-found []
+  (ex-info "Plan not found" {:type :reitit.ring/response
+                             :response {:status 422
+                                        :body "<h1>Plan not found</h1>"}}))
+
+(defn retrieve-price [price-id]
+  (try
+    (let [price (Price/retrieve price-id)]
+      (if (membership-price? price)
+        price
+        (throw (plan-not-found))))
+    (catch InvalidRequestException _
+      (throw (plan-not-found)))))
 
 (defn already-a-member-ex [email]
   (ex-info "Email is already a member" {:type :reitit.ring/response
                                         :response {:status 422
                                                    :body (format "<h1>Email %s is already a member. Try logging in.</h1>" email)}}))
 
-(def retrieve-plan-memo (memoize retrieve-plan))
+(def retrieve-price-memo (memoize retrieve-price))
 
 (defn retrieve-product [product-id]
   (try (Product/retrieve product-id)
@@ -152,20 +167,20 @@
    [:span.text-2xl.font-bold.text-gray-900 (.format currency-formatter (/ amount 100.0))]
    [:span.ml-1.text-sm.text-gray-600 (str/upper-case currency) " " (format-interval interval-count interval)]])
 
-(defn plan->map [^Plan plan]
+(defn price->map [^Price plan]
   {:id (.getId plan)
-   :interval (.getInterval plan)
-   :interval-count (.getIntervalCount plan)
-   :amount (.getAmount plan)
+   :interval (.getInterval (.getRecurring plan))
+   :interval-count (.getIntervalCount (.getRecurring plan))
+   :amount (.getUnitAmount plan)
    :currency (.getCurrency plan)
    :product (.getProduct plan)})
 
 (defn display-plans [req]
-  ;; TODO: migrate to the new Stripe Prices API - https://stripe.com/docs/api/plans
   (let [products (->> (.autoPagingIterable (Product/list {}))
                       (key-by #(.getId %)))
-        grouped-plans (->> (.autoPagingIterable (Plan/list {}))
-                           (map plan->map)
+        grouped-plans (->> (.autoPagingIterable (Price/list {"active" true "type" "recurring"}))
+                           (filter membership-price?)
+                           (map price->map)
                            (group-by :product))]
     [:div.space-y-4
      (for [[id product] products
@@ -184,12 +199,12 @@
 
 (defn selected-plan-summary
   "Shown on the sign-up forms so people can see what they're about to pay for."
-  [^Plan plan ^Product product]
+  [^Price plan ^Product product]
   [:div.my-6.rounded.bg-gray-100.px-4.py-3
    [:p {:class eyebrow-class} "Your plan"]
    [:p.font-semibold.text-gray-900 (.getName product)
     (when-let [nickname (.getNickname plan)] [:span.font-normal.text-gray-700 " – " nickname])]
-   (plan-price (plan->map plan))
+   (plan-price (price->map plan))
    [:p.text-sm.text-gray-600.mt-2 "You'll enter your card details on the next screen."]])
 
 (defn form-section-heading [title description]
@@ -199,11 +214,11 @@
 
 (defn current-plan [subscription-plan]
   (if subscription-plan
-    (let [plan (retrieve-plan-memo subscription-plan)
+    (let [plan (retrieve-price-memo subscription-plan)
           product (retrieve-product-memo (.getProduct plan))]
       [:div
        [:p.font-semibold.text-gray-900 (.getName product)]
-       (plan-price (plan->map plan))])
+       (plan-price (price->map plan))])
     [:p.text-gray-700 "You don't have a plan yet. Choose one below."]))
 
 (comment
@@ -430,7 +445,7 @@
                       ;; TODO: use :parameters
                       (unauthenticated! req)
                       (let [plan-id (get-in req [:query-params "plan"])
-                            plan (retrieve-plan-memo plan-id)
+                            plan (retrieve-price-memo plan-id)
                             product (retrieve-product-memo (.getProduct plan))]
                         (-> (template/template
                              req
@@ -475,7 +490,7 @@
 
                              ;; Create Checkout session
                              plan-id (get-in req [:form-params "plan"])
-                             plan (retrieve-plan-memo plan-id)
+                             plan (retrieve-price-memo plan-id)
                              session (checkout-session customer-id (.getId plan))]
 
                          ;; Later:
@@ -492,7 +507,7 @@
            (fn [req]
              (unauthenticated! req)
              (let [plan-id (get-in req [:query-params "plan"])
-                   plan (retrieve-plan-memo plan-id)
+                   plan (retrieve-price-memo plan-id)
                    product (retrieve-product-memo (.getProduct plan))]
                (-> (template/template
                     req
@@ -559,7 +574,7 @@
 
                     ;; Create Checkout session
                     plan-id (get-in req [:form-params "plan"])
-                    plan (retrieve-plan-memo plan-id)
+                    plan (retrieve-price-memo plan-id)
                     session (checkout-session customer-id (.getId plan))]
 
                 ;; Later:

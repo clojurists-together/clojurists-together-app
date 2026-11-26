@@ -1,0 +1,2265 @@
+{
+  "recorded-at": "2026-11-26T00:20:07.433949+00:00",
+  "checks": {
+    "sdk34_2_api2026_11_18": true,
+    "hosted_checkout_complete_paid": true,
+    "new_subscription_flexible": true,
+    "signed_creation_sets_price": true,
+    "signed_price_update_roundtrip": true,
+    "signed_cancellation_clears_member": true,
+    "classic_custom_legacy_plan_preserved": true,
+    "archived_legacy_price_retrieved": true,
+    "classic_and_flexible_portals_created": true,
+    "backfill_flexible_30_day_trial": true,
+    "clock_paid_one_cycle": true,
+    "real_events_current_version_testmode": true,
+    "bad_signature_rejected": true,
+    "request_ids_captured": true
+  },
+  "evidence": {
+    "invoices": {
+      "in_1UfqEPGYL0HLUlSLp8zMROJI": {
+        "id": "in_1UfqEPGYL0HLUlSLp8zMROJI",
+        "status": "paid",
+        "amount_paid": 500,
+        "amount_due": 500,
+        "billing_reason": "subscription_create",
+        "livemode": false,
+        "customer": "cus_VhEhbPPI1Rcifa"
+      },
+      "in_1UfqEaGYL0HLUlSLY1pjoL95": {
+        "id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+        "status": "paid",
+        "amount_paid": 500,
+        "amount_due": 500,
+        "billing_reason": "subscription_cycle",
+        "livemode": false,
+        "customer": "cus_VhEhbPPI1Rcifa"
+      },
+      "in_1UfqEWGYL0HLUlSLTzMFUCZ4": {
+        "id": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+        "status": "paid",
+        "amount_paid": 0,
+        "amount_due": 0,
+        "billing_reason": "subscription_create",
+        "livemode": false,
+        "customer": "cus_VhEhSYE8gPZf1q"
+      },
+      "in_1UfqEaGYL0HLUlSLyfn7e3yy": {
+        "id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "status": "paid",
+        "amount_paid": 500,
+        "amount_due": 500,
+        "billing_reason": "subscription_create",
+        "livemode": false,
+        "customer": "cus_VhEgaT5F4lZueY"
+      },
+      "in_1UfqEIGYL0HLUlSL2gquAh2Q": {
+        "id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "status": "paid",
+        "amount_paid": 500,
+        "amount_due": 500,
+        "billing_reason": "subscription_create",
+        "livemode": false,
+        "customer": "cus_VhEhUNRIU0c0XY"
+      }
+    },
+    "updated-at": "2026-11-26T00:12:25.269840Z",
+    "archived-legacy-price": {
+      "id": "plan_verify-1f6dbf3d-86e_legacy-monthly",
+      "active": false,
+      "livemode": false
+    },
+    "sdk-version": "34.2.0",
+    "objects": {
+      "backfill-subscription": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+      "checkout": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+      "flexible-subscription": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+      "legacy-plan": "plan_verify-1f6dbf3d-86e_legacy-monthly",
+      "updated-price": "price_1UfqDZGYL0HLUlSLuoDT7ytD",
+      "backfill-customer": "cus_VhEhSYE8gPZf1q",
+      "product": "prod_VhEghlgDG2ehbB",
+      "classic-subscription": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+      "checkout-customer": "cus_VhEgaT5F4lZueY",
+      "clock-customer": "cus_VhEhbPPI1Rcifa",
+      "clock-subscription": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+      "classic-customer": "cus_VhEhUNRIU0c0XY",
+      "clock": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+      "price": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+    },
+    "backfill-subscription": {
+      "current-period-end": 1798243696,
+      "latest-invoice": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+      "item-ids": [
+        "si_VhEh1cPixkWtss"
+      ],
+      "trial-end": 1798243696,
+      "customer": "cus_VhEhSYE8gPZf1q",
+      "status": "trialing",
+      "id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+      "billing-mode": "flexible",
+      "livemode": false,
+      "price-ids": [
+        "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+      ],
+      "trial-start": 1795651696
+    },
+    "checkout": {
+      "id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+      "status": "complete",
+      "payment_status": "paid",
+      "customer": "cus_VhEgaT5F4lZueY",
+      "subscription": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+      "livemode": false
+    },
+    "classic-portal": {
+      "id": "bps_1UfqEMGYL0HLUlSLMugjTgnr",
+      "created": true
+    },
+    "started-at": "2026-11-26T00:07:15.783718Z",
+    "requests": [
+      {
+        "at": "2026-11-26T00:07:16.570470Z",
+        "operation": "account.retrieve",
+        "object-id": "acct_1FcFTzGYL0HLUlSL",
+        "livemode": null,
+        "request-id": "req_IeaCC1eO2LKfY0",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:07:16.878236Z",
+        "operation": "product.create",
+        "object-id": "prod_VhEghlgDG2ehbB",
+        "livemode": false,
+        "request-id": "req_Q9xG0JpdAImeST",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:07:17.158282Z",
+        "operation": "price.create/price",
+        "object-id": "price_1UfqDZGYL0HLUlSLGqp7OsmK",
+        "livemode": false,
+        "request-id": "req_UOeRcolcWU2XyU",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:07:17.421884Z",
+        "operation": "price.create/updated-price",
+        "object-id": "price_1UfqDZGYL0HLUlSLuoDT7ytD",
+        "livemode": false,
+        "request-id": "req_5GJgNxsk9BR68d",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:07:17.783106Z",
+        "operation": "customer.create/checkout-customer",
+        "object-id": "cus_VhEgaT5F4lZueY",
+        "livemode": false,
+        "request-id": "req_wvYFSKmn3QSlXU",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:07:18.421159Z",
+        "operation": "auth.checkout-session",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_gpa2rxuSAcuiyn",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:07:18.720310Z",
+        "operation": "checkout.tag",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_ZlAupIo5cC1JMZ",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:07:19.022948Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_24wPw2nYpLrfHO",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:01.969088Z",
+        "operation": "plan.create-legacy",
+        "object-id": "plan_verify-1f6dbf3d-86e_legacy-monthly",
+        "livemode": false,
+        "request-id": "req_64ilZpjKLP1S9t",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:02.705895Z",
+        "operation": "customer.create/classic-customer",
+        "object-id": "cus_VhEhUNRIU0c0XY",
+        "livemode": false,
+        "request-id": "req_8Q94ZhxlOdW7Xj",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:05.146815Z",
+        "operation": "subscription.create-classic",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_nXj6epQ7ISZyHD",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:05.374740Z",
+        "operation": "auth.retrieve-price-legacy",
+        "object-id": "plan_verify-1f6dbf3d-86e_legacy-monthly",
+        "livemode": false,
+        "request-id": "req_2RRBNhEmCLVJpP",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:05.689700Z",
+        "operation": "price.archive-legacy",
+        "object-id": "plan_verify-1f6dbf3d-86e_legacy-monthly",
+        "livemode": false,
+        "request-id": "req_oAXpv2L3njji4D",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:05.932732Z",
+        "operation": "auth.retrieve-archived-legacy-price",
+        "object-id": "plan_verify-1f6dbf3d-86e_legacy-monthly",
+        "livemode": false,
+        "request-id": "req_RPUvtipuE4jKga",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:06.228743Z",
+        "operation": "auth.self-serve-session-classic",
+        "object-id": "bps_1UfqEMGYL0HLUlSLMugjTgnr",
+        "livemode": false,
+        "request-id": "req_HVJrYsPTNps8Kq",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:07.053817Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_HY8EcOAutw7130",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:07.301001Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_cSN958d7ZyO1bH",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:07.773686Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_irsLPYfUgaABLw",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:08.132153Z",
+        "operation": "test_clock.create",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_RGbJSGan0cPtym",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:09.215894Z",
+        "operation": "customer.create/clock-customer",
+        "object-id": "cus_VhEhbPPI1Rcifa",
+        "livemode": false,
+        "request-id": "req_P2zP1ZzdL8uLsv",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:11.850531Z",
+        "operation": "subscription.create-clock-flexible",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_LXqOILtwb8AIBo",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:12.214281Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_ytsJOppALYuMyi",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:12.417524Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_HKsJOmDy3felcM",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:12.622634Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_KHkzO3ewl8H7Us",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:12.864732Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_0nfLnky512OvEK",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:13.132379Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEPGYL0HLUlSLp8zMROJI",
+        "livemode": false,
+        "request-id": "req_4fWqv76enBrHkA",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:13.344861Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_oYYw9ZrH9UkWZd",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:13.591941Z",
+        "operation": "test_clock.retrieve-before-advance",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_saVruMixnuHWot",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:13.838227Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_cgAVxZPmoQjhwJ",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:14.175313Z",
+        "operation": "test_clock.advance-one-cycle",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_nq5q1LOIm3ZLU8",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:14.370436Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_6sBGM6RbcWMcHh",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:14.567925Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_qqsLZlQCIVy35B",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:14.771635Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_JZ41lirqjTGsTM",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:15.012237Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_ihoZLQJq8kUgrE",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:15.275404Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEPGYL0HLUlSLp8zMROJI",
+        "livemode": false,
+        "request-id": "req_vO4LLptoiD1SpR",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:15.490186Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_o1TXtWFv5WvwNr",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:17.216029Z",
+        "operation": "backfill.customer.retrieve",
+        "object-id": "cus_VhEhSYE8gPZf1q",
+        "livemode": false,
+        "request-id": "req_5rwfvmYJN0xgQi",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:17.959942Z",
+        "operation": "backfill.customer.tag",
+        "object-id": "cus_VhEhSYE8gPZf1q",
+        "livemode": false,
+        "request-id": "req_2ItnxjGQWJO8OJ",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:18.227562Z",
+        "operation": "backfill.subscription.list",
+        "object-id": null,
+        "livemode": null,
+        "request-id": "req_BggMTKoJEkDzYk",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:18.828697Z",
+        "operation": "backfill.subscription.tag",
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "livemode": false,
+        "request-id": "req_92TdgwLqaR7bmz",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:19.029572Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_iPmpWpHVYGB3Rk",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:19.228998Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_bJuXzpw6dwBn87",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:19.451406Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_C6y4teNxUAC07i",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:19.693356Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_mpllEnCRLuDH74",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:19.969169Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEPGYL0HLUlSLp8zMROJI",
+        "livemode": false,
+        "request-id": "req_gB6LnBF3HwVIMQ",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:20.206625Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "livemode": false,
+        "request-id": "req_6dVUj6DaBXUo6X",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:20.473028Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+        "livemode": false,
+        "request-id": "req_GPQPzanNCLbB3A",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:20.683597Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_SWZv9LXbz9H8bK",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:34.840212Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_T7hV6tqjYNWUwn",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:35.082557Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_yYF655I5KfPj3h",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:35.346085Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "livemode": false,
+        "request-id": "req_ZTvY9yg3bQwZKb",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:35.544676Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_FZw0cQaJpCws2x",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:35.806584Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_r53SNvCEypOC0Y",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:36.113228Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_bbazsmnDX8RC9b",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:36.442039Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+        "livemode": false,
+        "request-id": "req_TkKvJ1zIPiRXP1",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:36.916596Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "livemode": false,
+        "request-id": "req_cFFeFC5vF2JGb4",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:37.105245Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+        "livemode": false,
+        "request-id": "req_AdjWX2S36A4XyX",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:08:37.316876Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_mRy4ZlZuXL58Hj",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:00.852578Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_fK0dsqNwpMFor8",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:01.056952Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_ipvfG0y15xTNCw",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:01.258863Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "livemode": false,
+        "request-id": "req_Tco6dCLtdHGjMn",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:01.469842Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_1N49u7osVON3mz",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:01.682564Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_F4FKPrP1PKq0a9",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:02.242802Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_snnkbl1FHZcjHg",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:02.519196Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+        "livemode": false,
+        "request-id": "req_dOJwjmiVDBVbMu",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:02.716017Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "livemode": false,
+        "request-id": "req_ERbR2e4EdYh5K8",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:02.913392Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+        "livemode": false,
+        "request-id": "req_TSvgXa2Vh9UVAF",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:03.122799Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_z9AVKaBsGTLmTV",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:03.334042Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_49aEWyPaHh5c9c",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:03.926910Z",
+        "operation": "checkout.subscription.tag",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_C8KmuaQrTyxucx",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:04.181541Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_cD7UGY0DGwGpxS",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:04.430412Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_8c2jWxJeKJLDdr",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:04.770572Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "livemode": false,
+        "request-id": "req_skutXmMHM4cwg1",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:05.250833Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_RAnRdXZSE1yEKQ",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:05.463615Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_5W4eJSCaRsAFdq",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:05.708145Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_kjsS0laD2niUdY",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:06.104297Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+        "livemode": false,
+        "request-id": "req_faAPVsajL2rnuR",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:06.304403Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "livemode": false,
+        "request-id": "req_9S9h7eho08x1Ku",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:06.511979Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+        "livemode": false,
+        "request-id": "req_3d7MXVlIR6gTCj",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:06.733964Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_hknY4WObMkv2mH",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:06.976682Z",
+        "operation": "customer.retrieve-before-portal",
+        "object-id": "cus_VhEgaT5F4lZueY",
+        "livemode": false,
+        "request-id": "req_gqTWO8km4gPPDn",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:07.450603Z",
+        "operation": "auth.self-serve-session-flexible",
+        "object-id": "bps_1UfqFLGYL0HLUlSLmKwv03qd",
+        "livemode": false,
+        "request-id": "req_LFOetaH98I75S3",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:07.648383Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_CoFaGJ2cTsW1s8",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:07.849143Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_L2vfUoGL6ZgGN4",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:08.343535Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "livemode": false,
+        "request-id": "req_nNGsbuXIS3NnmV",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:08.541032Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_HMyMWVjhGhHupb",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:08.739640Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_7A7JvU6ia8uw36",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:08.979960Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_vbVzISKotyY8B7",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:09.253784Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+        "livemode": false,
+        "request-id": "req_e1rRPqI8BnOqtu",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:09.451366Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "livemode": false,
+        "request-id": "req_82uRVyRcRiXIXB",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:09.652287Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+        "livemode": false,
+        "request-id": "req_RwWceiMggEHxbY",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:09.863225Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_Sn2GhtoCivQdTE",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:10.084545Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_o77hDwMkivuve2",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:10.763558Z",
+        "operation": "subscription.update-price",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_j1vHi629IR20Uq",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:11.020020Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_UN1K9Nf7Oyhw9t",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:11.265120Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_LF7WYVk3aSJjXg",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:11.544850Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "livemode": false,
+        "request-id": "req_Lm4DwbfKpqH7FD",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:11.785904Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_W3kJoHSvEd3Iyj",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:12.050487Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_vBcuTmITKjP8sF",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:12.294386Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_b18jkm4pspKNtp",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:12.565243Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+        "livemode": false,
+        "request-id": "req_66jSAGFRNcQeyb",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:12.822436Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "livemode": false,
+        "request-id": "req_g3H0T6Ll4zc2g4",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:13.084503Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+        "livemode": false,
+        "request-id": "req_gz3r3fHJwWSrBF",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:09:13.295054Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_KqHpsDgrHcfmL6",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:29.059677Z",
+        "operation": "account.retrieve-on-resume",
+        "object-id": "acct_1FcFTzGYL0HLUlSL",
+        "livemode": null,
+        "request-id": "req_9SKBUS6KX55XF9",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:29.353500Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_1rKntBYp2dwxmE",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:29.574825Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_PEFzC3aclqAZdg",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:29.842213Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "livemode": false,
+        "request-id": "req_PRGRvo6Lz51d3b",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:30.040489Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_CzOMP1mUlM2CPV",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:30.255464Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_bhP5aw4SP04U4u",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:30.500377Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_OCv9XDeuKC4Iyr",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:30.765083Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+        "livemode": false,
+        "request-id": "req_07RFPJB7v4nSMH",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:30.961230Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "livemode": false,
+        "request-id": "req_hwj8qxG5BALq3u",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:31.157535Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+        "livemode": false,
+        "request-id": "req_2SCpxPfvxIXhqL",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:10:31.367006Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_MWVfaI79hzG708",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:22.124310Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_XZEs5NShm7I3Yz",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:22.683157Z",
+        "operation": "subscription.cancel",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_Bottktt7UZGSrM",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:22.938312Z",
+        "operation": "checkout.retrieve",
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "livemode": false,
+        "request-id": "req_AMsj0KdUoWFlUk",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:23.189929Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "livemode": false,
+        "request-id": "req_uNkSNxtsgN3aML",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:23.498671Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "livemode": false,
+        "request-id": "req_e2T6ucJxcSpZZZ",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:23.743416Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "livemode": false,
+        "request-id": "req_VXw19V0UY0gBeQ",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:24.013989Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "livemode": false,
+        "request-id": "req_CZnHZWOaOpsLNv",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:24.257967Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "livemode": false,
+        "request-id": "req_PiVCImJwYfaacV",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:24.519444Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+        "livemode": false,
+        "request-id": "req_QyILOoXUO4ZOJC",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:24.764111Z",
+        "operation": "subscription.retrieve",
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "livemode": false,
+        "request-id": "req_TSAmSbUEupOp0o",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:25.042632Z",
+        "operation": "invoice.retrieve",
+        "object-id": "in_1UfqEWGYL0HLUlSLTzMFUCZ4",
+        "livemode": false,
+        "request-id": "req_4V5oZUMDELGpE8",
+        "sdk-response": "success"
+      },
+      {
+        "at": "2026-11-26T00:12:25.256772Z",
+        "operation": "test_clock.retrieve",
+        "object-id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+        "livemode": false,
+        "request-id": "req_hQhr7sXAO2YL9c",
+        "sdk-response": "success"
+      }
+    ],
+    "api-version": "2026-11-18.endive",
+    "flexible-subscription": {
+      "current-period-end": 1798243700,
+      "latest-invoice": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+      "item-ids": [
+        "si_VhEimpBe6ailc8"
+      ],
+      "trial-end": null,
+      "customer": "cus_VhEgaT5F4lZueY",
+      "status": "canceled",
+      "id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+      "billing-mode": "flexible",
+      "livemode": false,
+      "price-ids": [
+        "price_1UfqDZGYL0HLUlSLuoDT7ytD"
+      ],
+      "trial-start": null
+    },
+    "webhooks": [
+      {
+        "object-id": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+        "type": "invoice.paid",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEhUNRIU0c0XY",
+        "http-status": 200,
+        "id": "evt_1UfqELGYL0HLUlSL9wEvSojM",
+        "at": "2026-11-26T00:08:05.746880Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": null
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": null
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "type": "customer.subscription.created",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEhUNRIU0c0XY",
+        "http-status": 200,
+        "id": "evt_1UfqELGYL0HLUlSL7Z5utqZg",
+        "at": "2026-11-26T00:08:05.874531Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": null
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "in_1UfqEPGYL0HLUlSLp8zMROJI",
+        "type": "invoice.paid",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEhbPPI1Rcifa",
+        "http-status": 200,
+        "id": "evt_1UfqESGYL0HLUlSLkVcPQJPz",
+        "at": "2026-11-26T00:08:12.424956Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": null
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": null
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "type": "customer.subscription.created",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEhbPPI1Rcifa",
+        "http-status": 200,
+        "id": "evt_1UfqESGYL0HLUlSLKUeKnJRA",
+        "at": "2026-11-26T00:08:12.761190Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": null
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "type": "customer.subscription.updated",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEhSYE8gPZf1q",
+        "http-status": 200,
+        "id": "evt_1UfqEYGYL0HLUlSLnxikkmZR",
+        "at": "2026-11-26T00:08:18.986847Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": null
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "type": "customer.subscription.updated",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEhbPPI1Rcifa",
+        "http-status": 200,
+        "id": "evt_1UfqEbGYL0HLUlSLxGXfVrfa",
+        "at": "2026-11-26T00:08:21.520637Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": null
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "type": "invoice.paid",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEgaT5F4lZueY",
+        "http-status": 200,
+        "id": "evt_1UfqEdGYL0HLUlSLTO9ORFeJ",
+        "at": "2026-11-26T00:08:24.056898Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": null
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "type": "checkout.session.completed",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEgaT5F4lZueY",
+        "http-status": 200,
+        "id": "evt_1UfqEeGYL0HLUlSLD6bnKbs4",
+        "at": "2026-11-26T00:08:24.417502Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": null
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "type": "customer.subscription.created",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEgaT5F4lZueY",
+        "http-status": 200,
+        "id": "evt_1UfqEeGYL0HLUlSLcSLrcXUU",
+        "at": "2026-11-26T00:08:24.559141Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+        "type": "invoice.paid",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEhbPPI1Rcifa",
+        "http-status": 200,
+        "id": "evt_1UfqEjGYL0HLUlSLwOZ7iDz9",
+        "at": "2026-11-26T00:08:29.275691Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": null,
+        "type": "customer.subscription.deleted",
+        "api-version": null,
+        "customer": "cus_invalid",
+        "http-status": 400,
+        "id": "evt_invalid_signature",
+        "at": "2026-11-26T00:08:47.931366Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": null,
+        "signature-present": true
+      },
+      {
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "type": "customer.subscription.updated",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEgaT5F4lZueY",
+        "http-status": 200,
+        "id": "evt_1UfqFHGYL0HLUlSLDgCKDZvB",
+        "at": "2026-11-26T00:09:04.113181Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "type": "customer.subscription.updated",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEgaT5F4lZueY",
+        "http-status": 200,
+        "id": "evt_1UfqFOGYL0HLUlSLc1HHNcEY",
+        "at": "2026-11-26T00:09:10.980953Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLuoDT7ytD"
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      },
+      {
+        "object-id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "type": "customer.subscription.deleted",
+        "api-version": "2026-11-18.endive",
+        "customer": "cus_VhEgaT5F4lZueY",
+        "http-status": 200,
+        "id": "evt_1UfqIUGYL0HLUlSLYWIkHMsi",
+        "at": "2026-11-26T00:12:23.070100Z",
+        "members-after": [
+          {
+            "id": 1,
+            "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+            "subscription_plan": null
+          },
+          {
+            "id": 2,
+            "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+            "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+          },
+          {
+            "id": 3,
+            "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          },
+          {
+            "id": 4,
+            "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+            "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+          }
+        ],
+        "livemode": false,
+        "signature-present": true
+      }
+    ],
+    "boundary": "Real api.stripe.com test API; genuine Stripe CLI signed HTTP delivery; production Ring routes; isolated PostgreSQL",
+    "actions": [
+      {
+        "at": "2026-11-26T00:08:06.788177Z",
+        "action": "classic",
+        "result": "ok"
+      },
+      {
+        "at": "2026-11-26T00:08:11.852031Z",
+        "action": "clock-create",
+        "result": "ok"
+      },
+      {
+        "at": "2026-11-26T00:08:14.176601Z",
+        "action": "clock-advance",
+        "result": "ok"
+      },
+      {
+        "at": "2026-11-26T00:08:18.833872Z",
+        "action": "backfill",
+        "result": "ok"
+      },
+      {
+        "at": "2026-11-26T00:08:34.494883Z",
+        "action": "inspect",
+        "result": "ok"
+      },
+      {
+        "at": "2026-11-26T00:09:03.928152Z",
+        "action": "complete",
+        "result": "ok"
+      },
+      {
+        "at": "2026-11-26T00:09:07.452530Z",
+        "action": "portal",
+        "result": "ok"
+      },
+      {
+        "at": "2026-11-26T00:09:10.765551Z",
+        "action": "update-price",
+        "result": "ok"
+      },
+      {
+        "at": "2026-11-26T00:12:22.684847Z",
+        "action": "cancel",
+        "result": "ok"
+      }
+    ],
+    "account-id": "acct_1FcFTzGYL0HLUlSL",
+    "classic-subscription": {
+      "current-period-end": 1798243682,
+      "latest-invoice": "in_1UfqEIGYL0HLUlSL2gquAh2Q",
+      "item-ids": [
+        "si_VhEhlczhkpoiTV"
+      ],
+      "trial-end": null,
+      "customer": "cus_VhEhUNRIU0c0XY",
+      "status": "active",
+      "id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+      "billing-mode": "classic",
+      "livemode": false,
+      "price-ids": [
+        "plan_verify-1f6dbf3d-86e_legacy-monthly"
+      ],
+      "trial-start": null
+    },
+    "clock-subscription": {
+      "current-period-end": 1800922087,
+      "latest-invoice": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+      "item-ids": [
+        "si_VhEhT7u3zHRJ7A"
+      ],
+      "trial-end": null,
+      "customer": "cus_VhEhbPPI1Rcifa",
+      "status": "active",
+      "id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+      "billing-mode": "flexible",
+      "livemode": false,
+      "price-ids": [
+        "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+      ],
+      "trial-start": null
+    },
+    "clock": {
+      "id": "clock_1UfqENGYL0HLUlSLwPCyt5bH",
+      "status": "ready",
+      "frozen_time": 1798250887,
+      "livemode": false
+    },
+    "members": [
+      {
+        "id": 1,
+        "stripe_customer_id": "cus_VhEgaT5F4lZueY",
+        "subscription_plan": null
+      },
+      {
+        "id": 2,
+        "stripe_customer_id": "cus_VhEhUNRIU0c0XY",
+        "subscription_plan": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+      },
+      {
+        "id": 3,
+        "stripe_customer_id": "cus_VhEhbPPI1Rcifa",
+        "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+      },
+      {
+        "id": 4,
+        "stripe_customer_id": "cus_VhEhSYE8gPZf1q",
+        "subscription_plan": "price_1UfqDZGYL0HLUlSLGqp7OsmK"
+      }
+    ],
+    "run-id": "verify-1f6dbf3d-86e",
+    "legacy-render": {
+      "current-plan": true
+    },
+    "flexible-portal": {
+      "id": "bps_1UfqFLGYL0HLUlSLmKwv03qd",
+      "created": true
+    }
+  },
+  "independent-http-proof": {
+    "parent-checkout-proof.json": {
+      "stage": "completed-checkout-independent-read",
+      "requests": [
+        {
+          "request_id": "req_lSQEQvmcnV5VLS",
+          "path": "/v1/checkout/sessions/cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+          "http": 200
+        },
+        {
+          "request_id": "req_jISVuHi3gkJsqs",
+          "path": "/v1/subscriptions/sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+          "http": 200
+        },
+        {
+          "request_id": "req_Q7cvKzF90JB6Jg",
+          "path": "/v1/invoices/in_1UfqEaGYL0HLUlSLyfn7e3yy",
+          "http": 200
+        }
+      ],
+      "session": {
+        "id": "cs_test_a09aRS3pU9RCtaxCgOscPzYssybowwOESKlcx7hJ7sTNrKsvFGXGWYIdgw",
+        "status": "complete",
+        "payment_status": "paid",
+        "livemode": false
+      },
+      "subscription": {
+        "id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "status": "active",
+        "billing_mode": "flexible",
+        "price": "price_1UfqDZGYL0HLUlSLuoDT7ytD"
+      },
+      "invoice": {
+        "id": "in_1UfqEaGYL0HLUlSLyfn7e3yy",
+        "status": "paid",
+        "amount_paid": 500,
+        "currency": "usd",
+        "billing_reason": "subscription_create"
+      },
+      "database": [
+        "1|cus_VhEgaT5F4lZueY|price_1UfqDZGYL0HLUlSLuoDT7ytD",
+        "2|cus_VhEhUNRIU0c0XY|plan_verify-1f6dbf3d-86e_legacy-monthly",
+        "3|cus_VhEhbPPI1Rcifa|price_1UfqDZGYL0HLUlSLGqp7OsmK",
+        "4|cus_VhEhSYE8gPZf1q|price_1UfqDZGYL0HLUlSLGqp7OsmK"
+      ]
+    },
+    "parent-renewal-proof.json": {
+      "stage": "classic-trial-renewal-independent-read",
+      "requests": [
+        {
+          "path": "/v1/subscriptions/sub_1UfqEIGYL0HLUlSLWoI73uNu",
+          "http": 200,
+          "request_id": "req_mrj7jjPoRs4b8s"
+        },
+        {
+          "path": "/v1/subscriptions/sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+          "http": 200,
+          "request_id": "req_a3HRoayqnknv6A"
+        },
+        {
+          "path": "/v1/invoices/in_1UfqEaGYL0HLUlSLY1pjoL95",
+          "http": 200,
+          "request_id": "req_HyM7YaCk9sjwok"
+        },
+        {
+          "path": "/v1/subscriptions/sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+          "http": 200,
+          "request_id": "req_KkC6ql6zcgfMIE"
+        }
+      ],
+      "classic-subscription": {
+        "id": "sub_1UfqEIGYL0HLUlSLWoI73uNu",
+        "mode": "classic",
+        "status": "active",
+        "price": "plan_verify-1f6dbf3d-86e_legacy-monthly"
+      },
+      "clock-subscription": {
+        "id": "sub_1UfqEPGYL0HLUlSL5gLoVCSH",
+        "mode": "flexible",
+        "status": "active",
+        "price": "price_1UfqDZGYL0HLUlSLGqp7OsmK",
+        "renewal_invoice": {
+          "id": "in_1UfqEaGYL0HLUlSLY1pjoL95",
+          "billing_reason": "subscription_cycle",
+          "status": "paid",
+          "amount_paid": 500,
+          "currency": "usd"
+        }
+      },
+      "backfill-subscription": {
+        "id": "sub_1UfqEWGYL0HLUlSL9AcFVnTa",
+        "mode": "flexible",
+        "status": "trialing",
+        "price": "price_1UfqDZGYL0HLUlSLGqp7OsmK",
+        "trial_seconds": 2592000
+      }
+    },
+    "old-checkout-control.json": {
+      "observation": "Legacy Checkout request shape remains accepted by current Stripe API. Extra open test session expired without payment.",
+      "id": "cs_test_a08GweG4BsN58uG66x3JtnCQypPm8Z4VtxAGXWM0eOmz0Up5N0jBh7rULG",
+      "status": "expired",
+      "livemode": false,
+      "request_id": "req_PqqDkZJxF4MZ3A"
+    },
+    "parent-cancel-proof.json": {
+      "stage": "cancellation-independent-read",
+      "subscription": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+      "status": "canceled",
+      "livemode": false,
+      "http": 200,
+      "request_id": "req_WzdZ2ePOiTLwJ2",
+      "postgres_member_1_subscription_plan_is_null": true
+    },
+    "parent-webhook-proof.json": [
+      {
+        "event_id": "evt_1UfqEeGYL0HLUlSLcSLrcXUU",
+        "type": "customer.subscription.created",
+        "stored_event_api_version": "2020-03-02",
+        "forwarded_api_version": "2026-11-18.endive",
+        "livemode": false,
+        "subscription_id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "canonical_top_level_plan_id": "price_1UfqDZGYL0HLUlSLGqp7OsmK",
+        "canonical_first_item_price_id": "price_1UfqDZGYL0HLUlSLGqp7OsmK",
+        "stripe_event_read_request_id": "req_ofsliEUafjUdvd",
+        "local_delivery_http": 200,
+        "signature_present": true
+      },
+      {
+        "event_id": "evt_1UfqFOGYL0HLUlSLc1HHNcEY",
+        "type": "customer.subscription.updated",
+        "stored_event_api_version": "2020-03-02",
+        "forwarded_api_version": "2026-11-18.endive",
+        "livemode": false,
+        "subscription_id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "canonical_top_level_plan_id": "price_1UfqDZGYL0HLUlSLuoDT7ytD",
+        "canonical_first_item_price_id": "price_1UfqDZGYL0HLUlSLuoDT7ytD",
+        "stripe_event_read_request_id": "req_RePqQHFfiVNWrr",
+        "local_delivery_http": 200,
+        "signature_present": true
+      },
+      {
+        "event_id": "evt_1UfqIUGYL0HLUlSLYWIkHMsi",
+        "type": "customer.subscription.deleted",
+        "stored_event_api_version": "2020-03-02",
+        "forwarded_api_version": "2026-11-18.endive",
+        "livemode": false,
+        "subscription_id": "sub_1UfqEcGYL0HLUlSLAmRnWuMr",
+        "canonical_top_level_plan_id": "price_1UfqDZGYL0HLUlSLuoDT7ytD",
+        "canonical_first_item_price_id": "price_1UfqDZGYL0HLUlSLuoDT7ytD",
+        "stripe_event_read_request_id": "req_mDLm9dbUwPYs2D",
+        "local_delivery_http": 200,
+        "signature_present": true
+      }
+    ],
+    "parent-legacy-replay-proof.json": {
+      "boundary": "Manual HMAC-signed local HTTP replay of unmodified canonical real Stripe API 2020-03-02 events, not a second genuine Stripe delivery",
+      "customer": "cus_VhEgaT5F4lZueY",
+      "events": [
+        {
+          "event_id": "evt_1UfqEeGYL0HLUlSLcSLrcXUU",
+          "type": "customer.subscription.created",
+          "canonical_api_version": "2020-03-02",
+          "stripe_event_read_request_id": "req_7w9C4y6rYhDBvA",
+          "local_http_status": 200,
+          "expected_member_price": "price_1UfqDZGYL0HLUlSLGqp7OsmK",
+          "observed_member_price": "price_1UfqDZGYL0HLUlSLGqp7OsmK",
+          "passed": true
+        },
+        {
+          "event_id": "evt_1UfqFOGYL0HLUlSLc1HHNcEY",
+          "type": "customer.subscription.updated",
+          "canonical_api_version": "2020-03-02",
+          "stripe_event_read_request_id": "req_m3DCAs7UXnaptN",
+          "local_http_status": 200,
+          "expected_member_price": "price_1UfqDZGYL0HLUlSLuoDT7ytD",
+          "observed_member_price": "price_1UfqDZGYL0HLUlSLuoDT7ytD",
+          "passed": true
+        },
+        {
+          "event_id": "evt_1UfqIUGYL0HLUlSLYWIkHMsi",
+          "type": "customer.subscription.deleted",
+          "canonical_api_version": "2020-03-02",
+          "stripe_event_read_request_id": "req_y1TqEkidZNlb8d",
+          "local_http_status": 200,
+          "expected_member_price": null,
+          "observed_member_price": null,
+          "passed": true
+        }
+      ]
+    }
+  },
+  "browser-proof": {
+    "checkout": "Hosted test card Checkout completed and returned to loopback success page.",
+    "flexible-account-and-portal": "Account page showed updated USD7 monthly Price; actual Manage billing details button opened hosted active USD7 portal.",
+    "classic-account-and-portal": "Account page rendered the archived custom legacy USD5 monthly Price; actual button opened hosted active USD5 portal.",
+    "canceled-account": "After the signed deletion, the real account page showed no current plan and listed available offers.",
+    "screenshots": [
+      "stripe-real-verification/flexible-account.jpg",
+      "stripe-real-verification/flexible-portal.jpg",
+      "stripe-real-verification/classic-account.jpg",
+      "stripe-real-verification/classic-portal.jpg",
+      "stripe-real-verification/canceled-account.jpg",
+      "stripe-real-verification/ready-local-signup.jpg"
+    ],
+    "fresh-registration": "Final clean bootstrap developer registration page displayed the fresh USD5 monthly Price."
+  },
+  "verification": {
+    "lein-test": {
+      "tests": 50,
+      "assertions": 248,
+      "failures": 0,
+      "errors": 0
+    },
+    "lein-cljfmt-check": "passed",
+    "git-diff-check": "passed",
+    "python-launcher-syntax": "passed",
+    "launcher-live-key-rejection": "passed",
+    "clean-bootstrap-startup-and-owned-process-shutdown": "passed by actual start, SIGTERM, all captured descendants gone, both ports closed, and fresh restart",
+    "manual-signed-canonical-2020-payload-replay": "passed created original Price, updated replacement Price, and deleted null membership; exact original canonical payload bytes signed locally, not another genuine Stripe delivery"
+  },
+  "limitations": [
+    "No production deployment, webhook endpoint version change, account-default upgrade, or live-mode writes.",
+    "The classic subscription is a new fixture. Historical subscription state was not migrated or exhaustively replayed.",
+    "The backfill trial creation was checked; collection at its trial end was not checked.",
+    "Payment-failure policy, event ordering, deduplication, and multiple subscriptions per customer remain unchanged.",
+    "The old Checkout request shape was accepted by the real target API. This run does not show that compatibility was removed."
+  ],
+  "payload-version-note": "Stripe stores the canonical events at the unchanged account default API version 2020-03-02. Stripe CLI --latest delivered the actual signed HTTP payloads rendered as 2026-11-18.endive.",
+  "bootstrap-proof": {
+    "command": "env -u STRIPE_SECRET_KEY python3 bin/stripe-real-verify bootstrap",
+    "credentials-source": "Only the unique sk_test_ token was selected from ignored .envrc text. The shell file was never evaluated.",
+    "initial-startup": {
+      "run-id": "verify-15ec1bb8-192",
+      "account-id": "acct_1FcFTzGYL0HLUlSL",
+      "sdk-version": "34.2.0",
+      "api-version": "2026-11-18.endive",
+      "requests": [
+        {
+          "at": "2026-11-26T00:14:44.303392Z",
+          "operation": "account.retrieve",
+          "object-id": "acct_1FcFTzGYL0HLUlSL",
+          "livemode": null,
+          "request-id": "req_CpNoywlyGr6hdM",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:14:44.602988Z",
+          "operation": "product.create",
+          "object-id": "prod_VhEo0aDSN5z5UH",
+          "livemode": false,
+          "request-id": "req_c6BYjNieIe7HfB",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:14:44.947318Z",
+          "operation": "price.create/price",
+          "object-id": "price_1UfqKmGYL0HLUlSLHfW8yULP",
+          "livemode": false,
+          "request-id": "req_WplZZWL2UQZyDu",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:14:45.226259Z",
+          "operation": "price.create/updated-price",
+          "object-id": "price_1UfqKnGYL0HLUlSL6Ajw2GX0",
+          "livemode": false,
+          "request-id": "req_Fr7lp0ignBH0Zc",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:14:45.602848Z",
+          "operation": "customer.create/checkout-customer",
+          "object-id": "cus_VhEo1wHMwnt9LS",
+          "livemode": false,
+          "request-id": "req_mbJUYYNpCAyZGh",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:14:46.619107Z",
+          "operation": "auth.checkout-session",
+          "object-id": "cs_test_a0PsJzUOpY4yiR1NiHLyZ91uoQCEb25pxu51LRA95pKZWGADpjYzljuBJZ",
+          "livemode": false,
+          "request-id": "req_rV6YFyh7x1PFn1",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:14:46.882119Z",
+          "operation": "checkout.tag",
+          "object-id": "cs_test_a0PsJzUOpY4yiR1NiHLyZ91uoQCEb25pxu51LRA95pKZWGADpjYzljuBJZ",
+          "livemode": false,
+          "request-id": "req_rDPjOkZe6dPjqP",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:14:47.124728Z",
+          "operation": "checkout.retrieve",
+          "object-id": "cs_test_a0PsJzUOpY4yiR1NiHLyZ91uoQCEb25pxu51LRA95pKZWGADpjYzljuBJZ",
+          "livemode": false,
+          "request-id": "req_VVqErvcyPg8OrO",
+          "sdk-response": "success"
+        }
+      ],
+      "checkout": {
+        "id": "cs_test_a0PsJzUOpY4yiR1NiHLyZ91uoQCEb25pxu51LRA95pKZWGADpjYzljuBJZ",
+        "status": "open",
+        "payment_status": "unpaid",
+        "customer": "cus_VhEo1wHMwnt9LS",
+        "subscription": null,
+        "livemode": false
+      },
+      "objects": {
+        "product": "prod_VhEo0aDSN5z5UH",
+        "price": "price_1UfqKmGYL0HLUlSLHfW8yULP",
+        "updated-price": "price_1UfqKnGYL0HLUlSL6Ajw2GX0",
+        "checkout-customer": "cus_VhEo1wHMwnt9LS",
+        "checkout": "cs_test_a0PsJzUOpY4yiR1NiHLyZ91uoQCEb25pxu51LRA95pKZWGADpjYzljuBJZ"
+      },
+      "members": [
+        {
+          "id": 1,
+          "stripe_customer_id": "cus_VhEo1wHMwnt9LS",
+          "subscription_plan": null
+        }
+      ]
+    },
+    "initial-shutdown": {
+      "bootstrap-sigterm-sent": true,
+      "owned-pids-before": [
+        38089,
+        38105,
+        38125,
+        38126,
+        38133,
+        38137
+      ],
+      "owned-pids-after": [
+        38133,
+        38137
+      ],
+      "app-port-closed": false,
+      "postgres-port-closed": true
+    },
+    "cleanup-correction": "Give the owned app and listener separate sessions. Terminate their saved process groups so Lein and its JVM both stop.",
+    "corrected-startup": {
+      "run-id": "verify-6601e3ad-f4c",
+      "account-id": "acct_1FcFTzGYL0HLUlSL",
+      "sdk-version": "34.2.0",
+      "api-version": "2026-11-18.endive",
+      "requests": [
+        {
+          "at": "2026-11-26T00:16:56.721420Z",
+          "operation": "account.retrieve",
+          "object-id": "acct_1FcFTzGYL0HLUlSL",
+          "livemode": null,
+          "request-id": "req_IWkML83mFChghc",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:16:57.074706Z",
+          "operation": "product.create",
+          "object-id": "prod_VhEqjgW7NqgtcG",
+          "livemode": false,
+          "request-id": "req_ZXdeLUkUE8ylP5",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:16:57.383422Z",
+          "operation": "price.create/price",
+          "object-id": "price_1UfqMvGYL0HLUlSLYQBudkzU",
+          "livemode": false,
+          "request-id": "req_AY41tlcAThT8Ti",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:16:57.656570Z",
+          "operation": "price.create/updated-price",
+          "object-id": "price_1UfqMvGYL0HLUlSLq20nUaNB",
+          "livemode": false,
+          "request-id": "req_QRcqAaBLqhk61m",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:16:58.088654Z",
+          "operation": "customer.create/checkout-customer",
+          "object-id": "cus_VhEqxvb5AHWPCv",
+          "livemode": false,
+          "request-id": "req_tQ2GlWTkoT28RZ",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:16:58.965065Z",
+          "operation": "auth.checkout-session",
+          "object-id": "cs_test_a0AZUvEZYcXKJ9kp0Pbet47JmDr8v5P9odrnO6zr4RQ42PY7Tn6WNWQnjf",
+          "livemode": false,
+          "request-id": "req_1PwQevheYrkoK6",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:16:59.242546Z",
+          "operation": "checkout.tag",
+          "object-id": "cs_test_a0AZUvEZYcXKJ9kp0Pbet47JmDr8v5P9odrnO6zr4RQ42PY7Tn6WNWQnjf",
+          "livemode": false,
+          "request-id": "req_Bi5O5VySaeRpKJ",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:16:59.522880Z",
+          "operation": "checkout.retrieve",
+          "object-id": "cs_test_a0AZUvEZYcXKJ9kp0Pbet47JmDr8v5P9odrnO6zr4RQ42PY7Tn6WNWQnjf",
+          "livemode": false,
+          "request-id": "req_2Vgw8H9ZKFPDkG",
+          "sdk-response": "success"
+        }
+      ],
+      "checkout": {
+        "id": "cs_test_a0AZUvEZYcXKJ9kp0Pbet47JmDr8v5P9odrnO6zr4RQ42PY7Tn6WNWQnjf",
+        "status": "open",
+        "payment_status": "unpaid",
+        "customer": "cus_VhEqxvb5AHWPCv",
+        "subscription": null,
+        "livemode": false
+      },
+      "objects": {
+        "product": "prod_VhEqjgW7NqgtcG",
+        "price": "price_1UfqMvGYL0HLUlSLYQBudkzU",
+        "updated-price": "price_1UfqMvGYL0HLUlSLq20nUaNB",
+        "checkout-customer": "cus_VhEqxvb5AHWPCv",
+        "checkout": "cs_test_a0AZUvEZYcXKJ9kp0Pbet47JmDr8v5P9odrnO6zr4RQ42PY7Tn6WNWQnjf"
+      },
+      "members": [
+        {
+          "id": 1,
+          "stripe_customer_id": "cus_VhEqxvb5AHWPCv",
+          "subscription_plan": null
+        }
+      ]
+    },
+    "verified-shutdown": {
+      "bootstrap-sigterm-sent": true,
+      "owned-pids-before": [
+        39332,
+        39345,
+        39346,
+        39347,
+        39348,
+        39349,
+        39350,
+        39352,
+        39353,
+        39354,
+        39364,
+        39365,
+        39372,
+        39849
+      ],
+      "owned-pids-after": [],
+      "app-port-closed": true,
+      "postgres-port-closed": true
+    },
+    "final-startup": {
+      "run-id": "verify-5994bac7-62b",
+      "account-id": "acct_1FcFTzGYL0HLUlSL",
+      "sdk-version": "34.2.0",
+      "api-version": "2026-11-18.endive",
+      "requests": [
+        {
+          "at": "2026-11-26T00:17:55.936009Z",
+          "operation": "account.retrieve",
+          "object-id": "acct_1FcFTzGYL0HLUlSL",
+          "livemode": null,
+          "request-id": "req_kw3FwH17cAEwsQ",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:17:56.215558Z",
+          "operation": "product.create",
+          "object-id": "prod_VhErzppa8L4qpk",
+          "livemode": false,
+          "request-id": "req_rILtBZuAAvdaIS",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:17:56.482970Z",
+          "operation": "price.create/price",
+          "object-id": "price_1UfqNsGYL0HLUlSLvT2OCsP8",
+          "livemode": false,
+          "request-id": "req_7VkyHjEf0PoODR",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:17:56.749478Z",
+          "operation": "price.create/updated-price",
+          "object-id": "price_1UfqNsGYL0HLUlSL0hVp47O7",
+          "livemode": false,
+          "request-id": "req_c1LiK0e9LQgMWA",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:17:57.122746Z",
+          "operation": "customer.create/checkout-customer",
+          "object-id": "cus_VhErNEObjCAhz9",
+          "livemode": false,
+          "request-id": "req_5elI0lABmtH37X",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:17:57.760121Z",
+          "operation": "auth.checkout-session",
+          "object-id": "cs_test_a0IptzJ6woz6zYmhhUhilSBO62gKscQZEN5DovpWZ2hD202yhQlQQd0Yu6",
+          "livemode": false,
+          "request-id": "req_KuTWZffNrGY6gq",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:17:58.035568Z",
+          "operation": "checkout.tag",
+          "object-id": "cs_test_a0IptzJ6woz6zYmhhUhilSBO62gKscQZEN5DovpWZ2hD202yhQlQQd0Yu6",
+          "livemode": false,
+          "request-id": "req_9qFbdEXp9Oo7Q3",
+          "sdk-response": "success"
+        },
+        {
+          "at": "2026-11-26T00:17:58.270492Z",
+          "operation": "checkout.retrieve",
+          "object-id": "cs_test_a0IptzJ6woz6zYmhhUhilSBO62gKscQZEN5DovpWZ2hD202yhQlQQd0Yu6",
+          "livemode": false,
+          "request-id": "req_0t2Pfc36MKvKY1",
+          "sdk-response": "success"
+        }
+      ],
+      "checkout": {
+        "id": "cs_test_a0IptzJ6woz6zYmhhUhilSBO62gKscQZEN5DovpWZ2hD202yhQlQQd0Yu6",
+        "status": "open",
+        "payment_status": "unpaid",
+        "customer": "cus_VhErNEObjCAhz9",
+        "subscription": null,
+        "livemode": false
+      },
+      "objects": {
+        "product": "prod_VhErzppa8L4qpk",
+        "price": "price_1UfqNsGYL0HLUlSLvT2OCsP8",
+        "updated-price": "price_1UfqNsGYL0HLUlSL0hVp47O7",
+        "checkout-customer": "cus_VhErNEObjCAhz9",
+        "checkout": "cs_test_a0IptzJ6woz6zYmhhUhilSBO62gKscQZEN5DovpWZ2hD202yhQlQQd0Yu6"
+      },
+      "members": [
+        {
+          "id": 1,
+          "stripe_customer_id": "cus_VhErNEObjCAhz9",
+          "subscription_plan": null
+        }
+      ]
+    },
+    "final-state": "Fresh app, listener, and isolated PostgreSQL left running for the user. Final Checkout is open and uncompleted."
+  }
+}

@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""Run a loopback-only Stripe rehearsal without sourcing .envrc or logging secrets."""
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import signal
+import socket
+import subprocess
+import sys
+import tempfile
+import threading
+import urllib.request
+
+
+def private_json(path, value):
+    path.write_text(json.dumps(value, indent=2))
+    path.chmod(0o600)
+
+
+def safe_environment():
+    allowed = {"PATH", "HOME", "USER", "LOGNAME", "TMPDIR", "JAVA_HOME", "LEIN_HOME", "LANG", "LC_ALL", "TZ", "TERM"}
+    return {k: v for k, v in os.environ.items() if k in allowed}
+
+
+def bootstrap():
+    """Own only fresh test fixtures, a private database, and the local listener."""
+    repository = Path(__file__).resolve().parent.parent
+    for executable in ("initdb", "pg_ctl", "createdb", "psql", "stripe", "lein"):
+        if not shutil.which(executable):
+            raise SystemExit(f"Required executable missing from PATH: {executable}")
+    key = os.environ.get("STRIPE_SECRET_KEY", "")
+    if key and not key.startswith("sk_test_"):
+        raise SystemExit("Refusing STRIPE_SECRET_KEY: only sk_test_ credentials are allowed.")
+    if not key:
+        # Read text only. Never evaluate the shell file or load unrelated credentials.
+        envrc = repository / ".envrc"
+        candidates = set(re.findall(r"\bsk_test_[A-Za-z0-9]+\b", envrc.read_text() if envrc.exists() else ""))
+        if len(candidates) != 1:
+            raise SystemExit("Set STRIPE_SECRET_KEY to one test key; no unique test key was found in .envrc.")
+        key = candidates.pop()
+    for port in (3347, 55437):
+        with socket.socket() as probe:
+            if probe.connect_ex(("127.0.0.1", port)) == 0:
+                raise SystemExit(f"Port {port} is already in use; refusing to reuse another process.")
+    os.umask(0o077)
+    runtime = Path(tempfile.mkdtemp(prefix="ct-stripe-verify-"))
+    database = runtime / "postgres"
+    credentials = {"STRIPE_SECRET_KEY": key, "STRIPE_API_KEY": key,
+                   "JDBC_DATABASE_URL": "jdbc:postgresql://127.0.0.1:55437/stripe_upgrade_verify"}
+    environment = safe_environment()
+    environment["STRIPE_API_KEY"] = key
+    listener = app = None
+    database_started = False
+    ready = threading.Event()
+    def stop_signal(_number, _frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, stop_signal)
+    try:
+        with (runtime / "infrastructure.log").open("w") as log:
+            subprocess.run(["initdb", "-D", str(database), "-A", "trust", "--no-locale", "-E", "UTF8"],
+                           env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
+            subprocess.run(["pg_ctl", "-D", str(database), "-l", str(runtime / "postgres.log"), "-o",
+                            f"-h 127.0.0.1 -p 55437 -k {runtime}", "start"],
+                           env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
+            database_started = True
+            subprocess.run(["createdb", "-h", "127.0.0.1", "-p", "55437", "stripe_upgrade_verify"],
+                           env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
+            for migration in sorted((repository / "resources/migrations").glob("*.up.sql")):
+                subprocess.run(["psql", "-X", "-v", "ON_ERROR_STOP=1", "-h", "127.0.0.1", "-p", "55437",
+                                "-d", "stripe_upgrade_verify", "-f", str(migration)],
+                               env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
+        events = "customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,checkout.session.completed,invoice.created,invoice.finalized,invoice.paid,invoice.payment_succeeded"
+        listener = subprocess.Popen(["stripe", "listen", "--latest", "--events", events,
+                                     "--forward-to", "http://127.0.0.1:3347/webhook/stripe"],
+                                    env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                    start_new_session=True)
+        def capture_listener():
+            with (runtime / "webhook-forward.log").open("w") as log:
+                for line in listener.stdout:
+                    found = re.search(r"\bwhsec_[A-Za-z0-9]+\b", line)
+                    if found:
+                        credentials["STRIPE_WEBHOOK_SECRET"] = found.group()
+                        private_json(runtime / "credentials.json", credentials)
+                        ready.set()
+                    log.write(re.sub(r"(?:whsec_[A-Za-z0-9]+|[sr]k_(?:test|live)_[A-Za-z0-9]+)", "[REDACTED]", line))
+                    log.flush()
+        threading.Thread(target=capture_listener, daemon=True).start()
+        if not ready.wait(45):
+            raise SystemExit(f"Stripe listener did not become ready; inspect private log in {runtime}")
+        print(f"Private runtime: {runtime}", flush=True)
+        print("Checkout URL: checkout-url.txt; evidence: evidence.json. Ctrl-C stops owned app/listener/database.", flush=True)
+        with (runtime / "app.log").open("w") as log:
+            app = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "start", str(runtime)],
+                                   cwd=repository, env=environment, stdout=log, stderr=subprocess.STDOUT,
+                                   start_new_session=True)
+            raise SystemExit(app.wait())
+    finally:
+        for process in (app, listener):
+            if process:
+                try:
+                    os.killpg(process.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+        if database_started:
+            subprocess.run(["pg_ctl", "-D", str(database), "-m", "fast", "stop"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def main():
+    if sys.argv[1:] == ["bootstrap"]:
+        bootstrap()
+        return
+    if len(sys.argv) < 3:
+        raise SystemExit("Usage: python3 bin/stripe-real-verify bootstrap | start PRIVATE_DIR | action PRIVATE_DIR ACTION | status PRIVATE_DIR")
+    command, directory = sys.argv[1:3]
+    runtime = Path(directory).resolve()
+    if command == "start":
+        credentials = json.loads((runtime / "credentials.json").read_text())
+        if not credentials.get("STRIPE_SECRET_KEY", "").startswith("sk_test_"):
+            raise SystemExit("Refusing credentials: STRIPE_SECRET_KEY must begin sk_test_.")
+        if not credentials.get("STRIPE_WEBHOOK_SECRET", "").startswith("whsec_"):
+            raise SystemExit("A Stripe CLI webhook signing secret is required.")
+        if credentials.get("JDBC_DATABASE_URL") != "jdbc:postgresql://127.0.0.1:55437/stripe_upgrade_verify":
+            raise SystemExit("Refusing credentials: expected the isolated loopback database.")
+        environment = safe_environment()
+        environment.update({k: credentials[k] for k in ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "JDBC_DATABASE_URL")})
+        os.umask(0o077)
+        os.chdir(Path(__file__).resolve().parent.parent)
+        os.execvpe("lein", ["lein", "run", "-m", "stripe-verify", str(runtime)], environment)
+    elif command in ("action", "status"):
+        if command == "status":
+            request = urllib.request.Request("http://127.0.0.1:3347/__verify/status")
+        else:
+            if len(sys.argv) != 4:
+                raise SystemExit("An action name is required.")
+            control = json.loads((runtime / "control.json").read_text())
+            request = urllib.request.Request(control["url"], data=json.dumps({"action": sys.argv[3]}).encode(),
+                                             headers={"Content-Type": "application/json", "X-Verification-Token": control["token"]})
+        with urllib.request.urlopen(request, timeout=90) as response:
+            print(json.dumps(json.load(response), indent=2))
+    else:
+        raise SystemExit("Unknown command.")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        raise SystemExit(130)
