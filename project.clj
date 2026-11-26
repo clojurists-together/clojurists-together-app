@@ -10,8 +10,6 @@
                  [com.stripe/stripe-java "34.2.0"]
                  [metosin/ring-http-response "0.9.5"]
                  [hiccup "2.0.0"]
-                 [org.apache.poi/poi-ooxml "6.0.0"]
-                 [com.nimbusds/nimbus-jose-jwt "10.10"]
                  [integrant "1.0.1"]
                  [dev.weavejester/ragtime "0.12.1"]
                  [org.clojure/java.jdbc "0.7.12"]

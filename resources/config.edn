@@ -1,13 +1,11 @@
-{:org.clojuriststogether.app.cashflow-sync/worker
+{:org.clojuriststogether.app.slack/worker
  {:db #ig/ref :org.clojuriststogether.app.db/hikari-cp
   :stripe #ig/ref :org.clojuriststogether.app.stripe/stripe
-  :enabled #profile {:prod true :dev false}}
+  :webhook-url #env "STRIPE_SLACK_WEBHOOK_URL"}
  :app/jetty {:port #long #or [#env PORT 3000]
              :join? false
              :handler #ig/ref :app/handler}
- :app/handler {:cloudflare-access {:issuer #env "CLOUDFLARE_ACCESS_ISSUER"
-                                   :audience #env "CLOUDFLARE_ACCESS_AUDIENCE"}
-               :stripe-webhook-secret #env "STRIPE_WEBHOOK_SECRET"
+ :app/handler {:stripe-webhook-secret #env "STRIPE_WEBHOOK_SECRET"
                :stripe-webhook-secondary-secret #env "STRIPE_WEBHOOK_SECONDARY_SECRET"
                :db #ig/ref :org.clojuriststogether.app.db/hikari-cp
                :store #ig/ref :app/session-store

@@ -1,0 +1,1 @@
+DROP TABLE stripe_slack_notifications;
