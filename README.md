@@ -11,6 +11,15 @@ FIXME: explanation
 heroku labs:enable runtime-dyno-metadata -a <app name>
 ```
 
+## Membership picker
+
+Manage the picker in Stripe using metadata:
+
+- On a **product**, set `member_type` to `developer` or `company`. Products without a recognised value appear under Other memberships.
+- On a **price**, set `public=false` to hide it from the picker while keeping it available for manual use. Removing the key or setting `public=true` shows it again.
+
+Within each group, membership cards are sorted by their lowest visible monthly-equivalent price. Billing options stay together within each card; equal monthly equivalents are ordered by the amount charged per payment.
+
 ## License
 
 Copyright © 2020 Clojurists Together Foundation

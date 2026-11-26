@@ -192,3 +192,28 @@
               (is (str/includes? (if (string? (:body response)) (:body response) (slurp (:body response)))
                                  (str "value=\"" id "\"")))
               (is (= (str "/v1/prices/" id) (:path (first (take-last 2 @requests))))))))))))
+
+(deftest membership-picker-groups-and-orders-by-monthly-cost
+  (let [products [{:id "prod_company" :object "product" :name "Company tier" :metadata {"member_type" "company"}}
+                  {:id "prod_high" :object "product" :name "Higher developer tier" :metadata {"member_type" "developer"}}
+                  {:id "prod_low" :object "product" :name "Lower developer tier" :metadata {"member_type" "developer"}}
+                  {:id "prod_unknown" :object "product" :name "Unclassified tier"}]
+        prices [(assoc (recurring-price "price_company") :product "prod_company" :unit_amount 5000)
+                (assoc (recurring-price "price_high") :product "prod_high" :unit_amount 2000)
+                (-> (recurring-price "price_annual")
+                    (assoc :product "prod_low" :unit_amount 12000)
+                    (assoc-in [:recurring :interval] "year"))
+                (assoc (recurring-price "price_monthly") :product "prod_low" :unit_amount 1000)
+                (assoc (recurring-price "price_hidden") :product "prod_high" :unit_amount 1 :metadata {"public" "false"})
+                (assoc (recurring-price "price_unknown") :product "prod_unknown")]]
+    (with-stripe-server
+      (fn [{:keys [path]}]
+        {:object "list" :data (if (= path "/v1/products") products prices) :has_more false :url path})
+      (fn [_]
+        (let [rendered (html (auth/display-plans {::r/router (r/router [["/manage/subscribe" {:name :manage-subscribe}]])}))
+              labels ["Developer memberships" "Lower developer tier" "price_monthly" "price_annual"
+                      "Higher developer tier" "Company memberships" "Company tier" "Other memberships" "Unclassified tier"]
+              positions (mapv #(.indexOf rendered %) labels)]
+          (is (every? #(<= 0 %) positions))
+          (is (apply < positions))
+          (is (not (str/includes? rendered "price_hidden"))))))))

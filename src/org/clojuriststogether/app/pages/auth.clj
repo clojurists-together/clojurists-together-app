@@ -175,28 +175,46 @@
    :currency (.getCurrency plan)
    :product (.getProduct plan)})
 
+(defn monthly-price [{:keys [amount interval interval-count]}]
+  (/ amount interval-count
+     (case interval "year" 12 "month" 1 "week" 12/52 "day" 12/365)))
+
 (defn display-plans [req]
-  (let [products (->> (.autoPagingIterable (Product/list {}))
-                      (key-by #(.getId %)))
+  (let [products (.autoPagingIterable (Product/list {}))
         grouped-plans (->> (.autoPagingIterable (Price/list {"active" true "type" "recurring"}))
                            (filter membership-price?)
                            (remove #(= "false" (get (.getMetadata ^Price %) "public")))
                            (map price->map)
-                           (group-by :product))]
-    [:div.space-y-4
-     (for [[id product] products
-           :let [product-plans (sort-by :amount (get grouped-plans id))]
-           :when (seq product-plans)]
-       [:div {:class card-class}
-        [:h3.px-6.pt-4.font-semibold.text-gray-900 (.getName product)]
-        [:div.px-6.divide-y.divide-gray-200
-         (for [plan product-plans]
-           [:form.flex.items-center.justify-between.py-3
-            {:method "POST" :action (utils/route-name->path req :manage-subscribe)}
-            (plan-price plan)
-            [:input {:type "hidden" :name "plan" :value (:id plan)}]
-            (anti-forgery/anti-forgery-field)
-            [:button {:class small-button-class} "Subscribe"]])]])]))
+                           (group-by :product))
+        memberships (for [^Product product products
+                          :let [plans (sort-by (juxt monthly-price :amount :id)
+                                               (get grouped-plans (.getId product)))
+                                member-type (get (.getMetadata product) "member_type")]
+                          :when (seq plans)]
+                      {:name (.getName product)
+                       :member-type (if (#{"developer" "company"} member-type) member-type "other")
+                       :plans plans})
+        groups (group-by :member-type memberships)]
+    [:div.space-y-8
+     (for [[member-type heading] [["developer" "Developer memberships"]
+                                  ["company" "Company memberships"]
+                                  ["other" "Other memberships"]]
+           :let [memberships (get groups member-type)]
+           :when (seq memberships)]
+       [:section
+        [:h2 {:class section-heading-class} heading]
+        [:div.space-y-4
+         (for [{:keys [name plans]} (sort-by (juxt #(monthly-price (first (:plans %))) :name) memberships)]
+           [:div {:class card-class}
+            [:h3.px-6.pt-4.font-semibold.text-gray-900 name]
+            [:div.px-6.divide-y.divide-gray-200
+             (for [plan plans]
+               [:form.flex.items-center.justify-between.py-3
+                {:method "POST" :action (utils/route-name->path req :manage-subscribe)}
+                (plan-price plan)
+                [:input {:type "hidden" :name "plan" :value (:id plan)}]
+                (anti-forgery/anti-forgery-field)
+                [:button {:class small-button-class} "Subscribe"]])]])]])]))
 
 (defn selected-plan-summary
   "Shown on the sign-up forms so people can see what they're about to pay for."
