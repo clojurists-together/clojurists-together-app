@@ -4,7 +4,7 @@
             [cheshire.core :as json]
             [clojure.string :as str]
             [honey.sql :as sql]
-            [org.clojuriststogether.app.cashflow-sync :as sync]
+            [org.clojuriststogether.app.slack :as slack]
             [org.clojuriststogether.app.spec :as specs])
   (:import (com.stripe.net Webhook)))
 
@@ -77,12 +77,13 @@
                     :else
                     (let [webhook-type (get payload :type)
                           id (get payload :id)]
-                      (sync/enqueue! db payload)
                       (prn "Handling" webhook-type)
                       (try
-                        (case webhook-type
-                          ("customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted")
-                          (handle-subscription-event db payload)
+                        (if (slack/event-types webhook-type)
+                          (jdbc/with-db-transaction [tx db]
+                            (when (not= webhook-type "customer.created")
+                              (handle-subscription-event tx payload))
+                            (slack/enqueue! tx payload))
                           (prn "Ignoring webhook" {:webhook-type webhook-type}))
                         (response/ok {:type webhook-type
                                       :id id

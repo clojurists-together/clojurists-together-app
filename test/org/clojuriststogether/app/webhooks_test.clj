@@ -5,7 +5,8 @@
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
             [integrant.core :as ig]
-            [org.clojuriststogether.app.routes])
+            [org.clojuriststogether.app.routes]
+            [org.clojuriststogether.app.slack :as slack])
   (:import (java.io ByteArrayInputStream)
            (javax.crypto Mac)
            (javax.crypto.spec SecretKeySpec)))
@@ -53,7 +54,9 @@
                          :headers {}
                          :body (ByteArrayInputStream. (.getBytes body "UTF-8"))}
                   signature (assoc-in [:headers "stripe-signature"] signature))]
-    (with-redefs [jdbc/execute! (fn [_db sql-and-params]
+    (with-redefs [jdbc/db-transaction* (fn [db f & _] (f db))
+                  slack/enqueue! (fn [_ _])
+                  jdbc/execute! (fn [_db sql-and-params]
                                   (swap! writes conj sql-and-params))]
       (let [response (handler request)]
         {:status (:status response)
@@ -64,9 +67,7 @@
   (testing "a created event sets the plan"
     (is (= {:status 200
             :error nil
-            :writes [["INSERT INTO cashflow_stripe_events (id,event_type,object_id) VALUES (?,?,?) ON CONFLICT (id) DO NOTHING"
-                      "evt_1GhqWAGYL0HLUlSLrxDUV2YW" "customer.subscription.created" "sub_HGNG8fNOVyoPus"]
-                     ["UPDATE members SET subscription_plan = ? WHERE stripe_customer_id = ?"
+            :writes [["UPDATE members SET subscription_plan = ? WHERE stripe_customer_id = ?"
                       plan-id customer-id]]}
            (post-webhook {:body created-event
                           :signature (signature-header created-event secret)
@@ -74,9 +75,7 @@
   (testing "a deleted event clears the plan"
     (is (= {:status 200
             :error nil
-            :writes [["INSERT INTO cashflow_stripe_events (id,event_type,object_id) VALUES (?,?,?) ON CONFLICT (id) DO NOTHING"
-                      "evt_1GhqWAGYL0HLUlSLrxDUV2YW" "customer.subscription.deleted" "sub_HGNG8fNOVyoPus"]
-                     ["UPDATE members SET subscription_plan = NULL WHERE stripe_customer_id = ?"
+            :writes [["UPDATE members SET subscription_plan = NULL WHERE stripe_customer_id = ?"
                       customer-id]]}
            (post-webhook {:body deleted-event
                           :signature (signature-header deleted-event secret)
@@ -138,9 +137,7 @@
 (defn queued-result [event status error & membership-writes]
   {:status status
    :error error
-   :writes (into [["INSERT INTO cashflow_stripe_events (id,event_type,object_id) VALUES (?,?,?) ON CONFLICT (id) DO NOTHING"
-                   (:id event) (:type event) (get-in event [:data :object :id])]]
-                 membership-writes)})
+   :writes (vec membership-writes)})
 
 (def modern-subscription
   {:id "sub_modern" :object "subscription" :customer customer-id
@@ -152,7 +149,7 @@
 (deftest signed-modern-subscriptions-store-the-price-with-either-billing-mode
   (doseq [mode ["classic" "flexible"]
           type ["customer.subscription.created" "customer.subscription.updated"]]
-    (testing (str mode " " type " queues the event before updating membership")
+    (testing (str mode " " type " updates membership")
       (let [event (assoc (subscription-event (assoc modern-subscription :billing_mode {:type mode})) :type type)]
         (is (= (queued-result event 200 nil
                               ["UPDATE members SET subscription_plan = ? WHERE stripe_customer_id = ?"
