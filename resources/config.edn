@@ -1,4 +1,8 @@
-{:app/jetty {:port #long #or [#env PORT 3000]
+{:org.clojuriststogether.app.cashflow-sync/worker
+ {:db #ig/ref :org.clojuriststogether.app.db/hikari-cp
+  :stripe #ig/ref :org.clojuriststogether.app.stripe/stripe
+  :enabled #profile {:prod true :dev false}}
+ :app/jetty {:port #long #or [#env PORT 3000]
              :join? false
              :handler #ig/ref :app/handler}
  :app/handler {:cloudflare-access {:issuer #env "CLOUDFLARE_ACCESS_ISSUER"

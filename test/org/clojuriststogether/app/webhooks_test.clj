@@ -62,7 +62,9 @@
   (testing "a created event sets the plan"
     (is (= {:status 200
             :error nil
-            :writes [["UPDATE members SET subscription_plan = ? WHERE stripe_customer_id = ?"
+            :writes [["INSERT INTO cashflow_stripe_events (id,event_type,object_id) VALUES (?,?,?) ON CONFLICT (id) DO NOTHING"
+                      "evt_1GhqWAGYL0HLUlSLrxDUV2YW" "customer.subscription.created" "sub_HGNG8fNOVyoPus"]
+                     ["UPDATE members SET subscription_plan = ? WHERE stripe_customer_id = ?"
                       plan-id customer-id]]}
            (post-webhook {:body created-event
                           :signature (signature-header created-event secret)
@@ -70,7 +72,9 @@
   (testing "a deleted event clears the plan"
     (is (= {:status 200
             :error nil
-            :writes [["UPDATE members SET subscription_plan = NULL WHERE stripe_customer_id = ?"
+            :writes [["INSERT INTO cashflow_stripe_events (id,event_type,object_id) VALUES (?,?,?) ON CONFLICT (id) DO NOTHING"
+                      "evt_1GhqWAGYL0HLUlSLrxDUV2YW" "customer.subscription.deleted" "sub_HGNG8fNOVyoPus"]
+                     ["UPDATE members SET subscription_plan = NULL WHERE stripe_customer_id = ?"
                       customer-id]]}
            (post-webhook {:body deleted-event
                           :signature (signature-header deleted-event secret)

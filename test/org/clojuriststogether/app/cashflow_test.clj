@@ -5,6 +5,7 @@
             [org.clojuriststogether.app.pages.cashflow :as page]
             [org.clojuriststogether.app.pages.auth :as auth]
             [org.clojuriststogether.app.stripe :as stripe]
+            [org.clojuriststogether.app.cashflow-sync :as sync]
             [org.clojuriststogether.app.routes]
             [integrant.core :as ig]
             [ring.middleware.session.memory :as memory]
@@ -65,7 +66,7 @@
                                            :store (memory/memory-store (atom {"session" {:member-id 1}}))})]
     (with-redefs [auth/get-member (fn [& _] @current)
                   jdbc/query (fn [& _] [member])
-                  stripe/snapshot (fn [_] {:as-of (Instant/now) :subscriptions [subscription] :actuals []})]
+                  sync/snapshot (fn [_ _] {:as-of (Instant/now) :subscriptions [subscription] :actuals []})]
       (doseq [path ["/admin/cashflow" "/admin/cashflow.xlsx"]]
         (let [req {:request-method :get :uri path :scheme :http :server-name "localhost"
                    :server-port 3000 :headers {"cookie" "ring-session=session"}}

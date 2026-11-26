@@ -3,7 +3,8 @@
             [clojure.java.jdbc :as jdbc]
             [cheshire.core :as json]
             [clojure.string :as str]
-            [honey.sql :as sql])
+            [honey.sql :as sql]
+            [org.clojuriststogether.app.cashflow-sync :as sync])
   (:import (com.stripe.net Webhook)))
 
 (defn handle-subscription-event [db payload]
@@ -51,6 +52,7 @@
                     :else
                     (let [webhook-type (get payload :type)
                           id (get payload :id)]
+                      (sync/enqueue! db payload)
                       (prn "Handling" webhook-type)
                       (case webhook-type
                         ("customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted")

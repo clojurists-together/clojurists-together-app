@@ -4,8 +4,7 @@
             [clj-http.client :as http])
   (:import (com.stripe Stripe)
            (com.stripe.model Customer)
-           (com.stripe.net RequestOptions)
-           (java.time Instant YearMonth ZoneOffset)))
+           (com.stripe.net RequestOptions)))
 
 (defn customer-id [customer]
   (if (map? customer) (:id customer) customer))
@@ -41,7 +40,7 @@
                       (forecast-list "subscription_items" {"subscription" (:id s)})
                       (get-in s [:items :data]))))
         (remove #(#{"canceled" "incomplete_expired"} (:status %))
-                (forecast-list "subscriptions" {"status" "all" "expand[]" ["data.customer" "data.latest_invoice" "data.schedule"]}))))
+                (forecast-list "subscriptions" {"expand[]" ["data.customer" "data.latest_invoice" "data.schedule"]}))))
 
 (defn charge-receipt [charge]
   ;; Include receipts from subscriptions that have since been cancelled, and from
@@ -56,41 +55,6 @@
        :subscription (get-in charge [:invoice :subscription])
        :created (:created charge) :currency (:currency balance) :net (:net balance)
        :gross (:amount balance) :fee (:fee balance) :charge-currency (:currency charge)})))
-
-(defn actual-receipts [^YearMonth start ^Instant now]
-  (let [since (.toEpochSecond (.atStartOfDay (.atDay start 1) ZoneOffset/UTC))]
-    (if (>= since (.getEpochSecond now)) []
-        (into [] (keep charge-receipt)
-              (forecast-list "charges" {"created[gte]" since "created[lt]" (.getEpochSecond now)
-                                        "expand[]" ["data.invoice" "data.balance_transaction" "data.customer"]})))))
-
-(defonce ^:private snapshot-cache (atom nil))
-
-(defn snapshot [start]
-  ;; Keep one coherent snapshot for five minutes, including its cut-off time.
-  ;; Scenario changes and Excel exports can reuse it without refetching history.
-  (locking snapshot-cache
-    (let [now (Instant/now)
-          cache-key [start Stripe/apiKey]
-          cached @snapshot-cache]
-      (if (and (= cache-key (:key cached))
-               (.isBefore now (:expires-at cached)))
-        (:data cached)
-        (let [subs (subscriptions)
-              ;; Capture the cut-off after reading renewal dates, before loading
-              ;; history, so the long history request doesn't advance subscriptions
-              ;; beyond the actual payments included in this snapshot.
-              as-of (Instant/now)
-              fee-start (.minusMonths (YearMonth/from (.atZone as-of ZoneOffset/UTC)) 12)
-              history-start (if (.isBefore ^YearMonth start fee-start) start fee-start)
-              history (actual-receipts history-start as-of)
-              report-since (.toEpochSecond (.atStartOfDay (.atDay ^YearMonth start 1) ZoneOffset/UTC))
-              fee-since (.toEpochSecond (.atStartOfDay (.atDay fee-start 1) ZoneOffset/UTC))
-              data {:as-of as-of :subscriptions subs
-                    :actuals (filterv #(>= (:created %) report-since) history)
-                    :fee-history (filterv #(>= (:created %) fee-since) history)}]
-          (reset! snapshot-cache {:key cache-key :data data :expires-at (.plusSeconds (Instant/now) 300)})
-          data)))))
 
 (defmethod ig/init-key ::stripe
   [_ {:keys [secret-key]}]
