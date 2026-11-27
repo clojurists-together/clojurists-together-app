@@ -41,12 +41,15 @@
     (:billing_thresholds item) (assoc :billing_thresholds
                                       (into {} (filter (fn [[_ v]] (or (number? v) (boolean? v)))
                                                        (select-keys (:billing_thresholds item) [:amount_gte :usage_gte :reset_billing_cycle_anchor]))))
+    (:current_trial item) (assoc :current_trial (select-keys (:current_trial item) [:start_date :end_date :trial_offer]))
     (seq (:discounts item)) (assoc :discounts (references (:discounts item)))
     (seq (:tax_rates item)) (assoc :tax_rates (references (:tax_rates item)))))
 
 (defn- display-item [item]
   (let [price (or (:price item) (:plan item))]
     (assoc (cond-> (item-value item)
+             (:current_trial item) (update :current_trial #(cond-> (select-keys % [:start_date :end_date])
+                                                             (:trial_offer %) (assoc :trial_offer (or (safe-id (:trial_offer %)) "Details withheld"))))
              (seq (:discounts item)) (assoc :discounts (mapv #(or (safe-id %) "Details withheld") (:discounts item)))
              (seq (:tax_rates item)) (assoc :tax_rates (mapv #(or (safe-id %) "Details withheld") (:tax_rates item)))) :price
            (if (map? price)
@@ -59,9 +62,10 @@
       (when (:plan subscription) [{:plan (:plan subscription) :quantity (:quantity subscription)}])
       []))
 
-(defn- same-items? [before after]
-  (= (frequencies (map item-value (item-list before)))
-     (frequencies (map item-value (item-list after)))))
+(defn- same-items? [before after ignored-fields]
+  (let [values (fn [subscription]
+                 (frequencies (map #(apply dissoc (item-value %) ignored-fields) (item-list subscription))))]
+    (= (values before) (values after))))
 
 (def field-specs
   [[:cancel_at_period_end "Cancel at period end" :boolean]
@@ -152,7 +156,8 @@
           changed? #(and (contains? previous %)
                          (not= (if (#{:discount :discounts :default_tax_rates :schedule} %) (references (get before %)) (get before %))
                                (if (#{:discount :discounts :default_tax_rates :schedule} %) (references (get current %)) (get current %))))
-          items-changed? (and (some #(contains? previous %) [:items :plan]) (not (same-items? before current)))
+          items-changed? (and (some #(contains? previous %) [:items :plan]) (not (same-items? before current [])))
+          item-trial-only? (and items-changed? (same-items? before current [:current_trial :trial_end]))
           known (into routine-fields (concat [:items :plan] (map first field-specs)))
           changes (vec (concat
                         (when items-changed?
@@ -183,6 +188,7 @@
                                                (nil? (:pause_collection current)) "Payment collection resumed"
                                                (:pause_collection before) "Payment collection settings changed"
                                                :else "Payment collection paused")
+                  (and item-trial-only? (not (fields :quantity))) "Subscription item trial changed"
                   (or items-changed? (fields :quantity)) "Subscription membership changed"
                   (some fields [:discount :discounts]) "Subscription discount changed"
                   (some fields [:default_tax_rates :automatic_tax]) "Subscription tax settings changed"

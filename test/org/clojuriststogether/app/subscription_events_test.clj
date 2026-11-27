@@ -108,3 +108,13 @@
   (is (nil? (events/update-details
              (update-event {:items {:data [{:price {:id "price_a" :currency "usd" :unit_amount 100}}]}}
                            {:items {:data [{:price "price_a"}]}})))))
+
+(deftest modern-item-trials-are-meaningful
+  (let [item {:price {:id "price_a"} :quantity 1 :current_trial nil}
+        after (assoc item :current_trial {:start_date 100 :end_date 200 :trial_offer "trial_offer_a"})
+        result (events/update-details
+                (update-event {:items {:data [after]} :status "active"}
+                              {:items {:data [item]}}))]
+    (is (= "Subscription item trial changed" (:title result)))
+    (is (= {:start_date 100 :end_date 200 :trial_offer "Details withheld"}
+           (get-in result [:changes 0 :after 0 :current_trial])))))
