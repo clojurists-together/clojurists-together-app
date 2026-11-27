@@ -65,9 +65,10 @@
   (let [m (rendered (event "updated" subscription {:status "past_due"}))]
     (is (= "*Payment recovered — subscription active*" (get-in m [:attachments 0 :blocks 0 :text :text])))
     (is (.startsWith (get-in m [:attachments 0 :fallback]) "Payment recovered — subscription active\n")))
-  (doseq [e [(event "updated" subscription {:status "trialing"})
-             (event "updated" (assoc subscription :status "past_due") {:items {:data []}})]]
-    (is (= "*Subscription updated*" (get-in (rendered e) [:attachments 0 :blocks 0 :text :text])))))
+  (is (= "*Trial ended — subscription active*"
+         (get-in (rendered (event "updated" subscription {:status "trialing"})) [:attachments 0 :blocks 0 :text :text])))
+  (doseq [e [(event "updated" (assoc subscription :status "past_due") {:items {:data []}})]]
+    (is (= "*Subscription membership changed*" (get-in (rendered e) [:attachments 0 :blocks 0 :text :text])))))
 
 (deftest corporate-message-separates-customer-product-and-plan
   (let [m (rendered (event "created" subscription {}))]
@@ -109,3 +110,53 @@
     (is (= :customer-created (slack/notification-kind e)))
     (is (.contains (get-in m [:attachments 0 :fallback]) "New customer\nNamed Customer (customer@example.org)"))
     (is (.contains (get-in m [:attachments 0 :blocks 2 :elements 0 :text]) "customers/cus_example"))))
+
+(deftest readable-bounded-private-change-details
+  (let [e (event "updated" (assoc subscription :status "past_due" :future_setting {:secret "private-new"}
+                                  :cancellation_details {:comment "private-comment"})
+                 {:status "active" :future_setting {:secret "private-old"}
+                  :cancellation_details {:comment "old-comment"}})
+        m (rendered e)
+        text (pr-str m)]
+    (doseq [expected ["What changed" "Status: Active → Past due" "future_setting: Changed (details withheld)" "View event in Stripe"]]
+      (is (.contains text expected)))
+    (doseq [private ["private-new" "private-old" "private-comment" "old-comment"]]
+      (is (not (.contains text private)))))
+  (let [long-name (apply str (repeat 5000 "<&>"))
+        changed (-> subscription
+                    (assoc-in [:items :data 0 :price :nickname] long-name)
+                    (assoc-in [:items :data 0 :quantity] 2))]
+    (with-redefs [jdbc/query (fn [& _] [])
+                  stripe/notification-object (fn [kind _] (case kind :customer {:name long-name} :product {:name long-name}))]
+      (let [m (slack/message {} (event "updated" changed {:items (:items subscription)}))
+            blocks (get-in m [:attachments 0 :blocks])]
+        (is (< (count blocks) 50))
+        (is (<= (count (get-in m [:attachments 0 :fallback])) 8000))
+        (doseq [block blocks]
+          (when-let [text (get-in block [:text :text])]
+            (is (<= (count text) 3000)))
+          (doseq [field (:fields block)] (is (<= (count (:text field)) 2000))))
+        (is (not (.contains (apply str (keep #(get-in % [:text :text]) blocks)) "<&>")))))))
+
+(deftest item-settings-are-visible-and-private-data-are-omitted
+  (let [changed (assoc-in subscription [:items :data 0 :discounts] [{:id "di_new" :metadata {:secret "private-discount"}}])
+        m (rendered (event "updated" changed {:items (:items subscription)}))]
+    (is (.contains (get-in m [:attachments 0 :fallback]) "di_new"))
+    (is (not (.contains (pr-str m) "private-discount")))))
+
+(deftest routine-private-updates-never-enter-outbox
+  (doseq [[field value] [[:metadata {:private "x"}] [:default_payment_method "pm_new"]
+                         [:cancellation_details {:comment "private"}] [:latest_invoice "in_new"]]]
+    (let [writes (atom [])]
+      (with-redefs [jdbc/execute! (fn [& args] (swap! writes conj args))]
+        (slack/enqueue! {} (event "updated" (assoc subscription field value) {field nil})))
+      (is (empty? @writes)))))
+
+(deftest malformed-item-settings-never-dump-values
+  (let [changed (-> subscription
+                    (assoc-in [:items :data 0 :discounts] [{:id "private-token" :metadata {:secret "private-metadata"}}])
+                    (assoc-in [:items :data 0 :billing_thresholds] {:usage_gte 10 :secret "private-threshold"}))
+        m (rendered (event "updated" changed {:items (:items subscription)}))]
+    (doseq [private ["private-token" "private-metadata" "private-threshold"]]
+      (is (not (.contains (pr-str m) private))))
+    (is (.contains (pr-str m) "usage_gte"))))
