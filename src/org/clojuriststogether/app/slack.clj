@@ -99,9 +99,19 @@
                  (not-empty (:person_name member)) (:email customer) (:email member) customer-id)
         email (or (:email customer) (:email member))
         kind (notification-kind event)
-        title (case kind :customer-created "New customer" :created "New subscription" :updated "Subscription updated" :cancelled "Subscription cancelled"
-                    :cancellation-scheduled "Subscription cancellation scheduled"
-                    :cancellation-reversed "Subscription cancellation reversed")
+        previous-status (get-in event [:data :previous_attributes :status])
+        title (case kind
+                :customer-created "New customer"
+                :created "New subscription"
+                :updated (cond
+                           (and previous-status (not= previous-status "past_due") (= "past_due" (:status subscription)))
+                           "Payment failed — subscription past due"
+                           (and (= previous-status "past_due") (= "active" (:status subscription)))
+                           "Payment recovered — subscription active"
+                           :else "Subscription updated")
+                :cancelled "Subscription cancelled"
+                :cancellation-scheduled "Subscription cancellation scheduled"
+                :cancellation-reversed "Subscription cancellation reversed")
         items (or (seq (get-in subscription [:items :data]))
                   (when (:plan subscription) [{:plan (:plan subscription) :quantity (:quantity subscription)}]))
         _ (when (get-in subscription [:items :has_more])
