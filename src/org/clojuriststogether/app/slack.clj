@@ -90,8 +90,11 @@
                                       (str product " — " plan
                                            (when-let [id (get-in item [:price :id])] (when (not= id plan) (str " (" id ")")))
                                            " — " summary
-                                           (when-let [settings (not-empty (dissoc item :price :quantity))]
-                                             (str " — " (pr-str settings))))))
+                                           (when-let [settings (not-empty (dissoc item :price :quantity :current_trial))]
+                                             (str " — " (pr-str settings)))
+                                           (when-let [trial (:current_trial item)]
+                                             (str " — Trial: " (date-label (:start_date trial)) " to " (date-label (:end_date trial))
+                                                  (when-let [offer (:trial_offer trial)] (str " (offer " offer ")")))))))
                                   (take 4 value)))
               "None")
      :status (str/capitalize (str/replace (or value "None") "_" " "))
@@ -107,9 +110,11 @@
 (defn- change-lines [changes]
   (let [shown (take 12 changes)]
     (cond-> (mapv (fn [{:keys [label before after format]}]
-                    (str (bounded label 80) ": "
-                         (if (= format :withheld) "Changed (details withheld)"
-                             (str (change-value format before) " → " (change-value format after))))) shown)
+                    (let [before-text (change-value format before)
+                          after-text (change-value format after)]
+                      (str (bounded label 80) ": "
+                           (if (or (= format :withheld) (= before-text after-text)) "Changed (details withheld)"
+                               (str before-text " → " after-text))))) shown)
       (> (count changes) 12) (conj "More changes available in Stripe."))))
 
 (defn message

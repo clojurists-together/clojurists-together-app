@@ -160,3 +160,19 @@
     (doseq [private ["private-token" "private-metadata" "private-threshold"]]
       (is (not (.contains (pr-str m) private))))
     (is (.contains (pr-str m) "usage_gte"))))
+
+(deftest modern-item-trial-dates-are-readable
+  (let [changed (assoc-in subscription [:items :data 0 :current_trial]
+                          {:start_date 1798761600 :end_date 1801440000 :metadata {:secret "private-trial"}})
+        m (rendered (event "updated" changed {:items (:items subscription)}))]
+    (is (.contains (get-in m [:attachments 0 :fallback]) "Subscription item trial changed"))
+    (is (.contains (get-in m [:attachments 0 :fallback]) "Trial: 2027-01-01 00:00 UTC to 2027-02-01 00:00 UTC"))
+    (is (not (.contains (pr-str m) "private-trial")))))
+
+(deftest item-trial-offer-changes-are-visible
+  (let [before (assoc-in subscription [:items :data 0 :current_trial]
+                         {:start_date 1798761600 :end_date 1801440000 :trial_offer "offer_a"})
+        after (assoc-in before [:items :data 0 :current_trial :trial_offer] "offer_b")
+        m (rendered (event "updated" after {:items (:items before)}))]
+    (is (.contains (get-in m [:attachments 0 :fallback]) "offer_a"))
+    (is (.contains (get-in m [:attachments 0 :fallback]) "offer_b"))))
