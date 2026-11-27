@@ -80,6 +80,26 @@ usage-based prices are labelled instead of estimated. Unrelated metadata changes
 do not generate a notification. Cancellation requests, date changes, reversals,
 and final cancellation are distinct messages.
 
+Subscription updates use the pure `subscription-events/update-details` summary for
+both queue filtering and rendering. Partial previous maps are restored from the
+event snapshot before comparing. Item comparisons use price identity, amount,
+recurrence, quantity, discounts, taxes, thresholds, and trial settings. Item order,
+price/product expansion, nickname/archive flags, metadata, and billing period dates
+do not create changes. Status, cancellation, trial, collection pause, membership,
+discount, tax, billing settings, and scheduling updates have distinct headings.
+The status diff makes payment headings explicit; no invoice lookup is performed.
+
+Routine updates remain silent for metadata, latest invoice, period timestamps,
+updated/created timestamps, payment method/source/settings, pending setup intent,
+cancellation feedback/comments, canceled/ended timestamps, object identity,
+livemode, and application identity. Financial ownership and unknown non-routine
+fields alert with field names and withheld values. New top-level fields therefore cannot
+silently disappear or dump arbitrary data into Slack. Changes are escaped and
+bounded to 12 lines, four memberships per side, six current membership cards,
+and an 8,000-character fallback. Every message links to the Stripe event for
+complete inspection. Customer contact details remain in the existing identity
+section; change details never dump customer, payment, metadata, or free-text objects.
+
 New-customer notifications are retained from the legacy integration.
 
 The worker enriches customer and product display names using the pinned Stripe

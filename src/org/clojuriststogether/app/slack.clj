@@ -6,7 +6,8 @@
             [clojure.tools.logging :as log]
             [integrant.core :as ig]
             [org.clojuriststogether.app.db]
-            [org.clojuriststogether.app.stripe :as stripe])
+            [org.clojuriststogether.app.stripe :as stripe]
+            [org.clojuriststogether.app.subscription-events :as subscription-events])
   (:import (java.time Instant ZoneOffset)
            (java.time.format DateTimeFormatter)
            (java.text NumberFormat)
@@ -16,30 +17,13 @@
 (def event-types
   #{"customer.created" "customer.subscription.created" "customer.subscription.updated" "customer.subscription.deleted"})
 
-(defn- cancellation-scheduled? [subscription]
-  (or (true? (:cancel_at_period_end subscription)) (some? (:cancel_at subscription))))
-
-(defn- items-without-billing-periods [items]
-  (frequencies (map #(dissoc % :current_period_start :current_period_end) (:data items))))
-
-(defn notification-kind [{:keys [type data]}]
-  (let [subscription (:object data)
-        previous (:previous_attributes data)
-        cancellation-changed? (some #(and (contains? previous %) (not= (get previous %) (get subscription %)))
-                                    [:cancel_at_period_end :cancel_at])]
-    (case type
-      "customer.created" :customer-created
-      "customer.subscription.created" :created
-      "customer.subscription.deleted" :cancelled
-      "customer.subscription.updated"
-      (cond
-        cancellation-changed? (if (cancellation-scheduled? subscription) :cancellation-scheduled :cancellation-reversed)
-        (or (and (contains? previous :items)
-                 (not= (items-without-billing-periods (:items previous))
-                       (items-without-billing-periods (:items subscription))))
-            (some #(and (contains? previous %) (not= (get previous %) (get subscription %)))
-                  [:plan :quantity :status :discount :discounts :pause_collection])) :updated)
-      nil)))
+(defn notification-kind [{:keys [type] :as event}]
+  (case type
+    "customer.created" :customer-created
+    "customer.subscription.created" :created
+    "customer.subscription.deleted" :cancelled
+    "customer.subscription.updated" (:kind (subscription-events/update-details event))
+    nil))
 
 (defn enqueue! [db event]
   (when (notification-kind event)
@@ -86,6 +70,48 @@
     (merge {:product (or (:name product) "Unknown product") :plan plan}
            (amount-label price (or (:quantity item) 1)))))
 
+(defn- bounded [value limit]
+  (let [s (str value)]
+    (if (> (count s) limit) (str (subs s 0 (- limit 1)) "…") s)))
+
+(defn- date-label [value]
+  (if (number? value)
+    (try (.format (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm 'UTC'")
+                  (.atOffset (Instant/ofEpochSecond (long value)) ZoneOffset/UTC))
+         (catch Exception _ "Unknown date"))
+    "None"))
+
+(defn- change-value [format value]
+  (bounded
+   (case format
+     :items (if (seq value)
+              (str/join "; " (map (fn [item]
+                                    (let [{:keys [product plan summary]} (item-details item)]
+                                      (str product " — " plan
+                                           (when-let [id (get-in item [:price :id])] (when (not= id plan) (str " (" id ")")))
+                                           " — " summary
+                                           (when-let [settings (not-empty (dissoc item :price :quantity))]
+                                             (str " — " (pr-str settings))))))
+                                  (take 4 value)))
+              "None")
+     :status (str/capitalize (str/replace (or value "None") "_" " "))
+     :date (date-label value)
+     :boolean (case value true "Yes" false "No" "None")
+     :withheld "Details withheld"
+     (cond (nil? value) "None"
+           (map? value) (str/join ", " (map (fn [[k v]] (str (name k) "=" v)) value))
+           (sequential? value) (if (seq value) (str/join ", " value) "None")
+           :else (str value)))
+   400))
+
+(defn- change-lines [changes]
+  (let [shown (take 12 changes)]
+    (cond-> (mapv (fn [{:keys [label before after format]}]
+                    (str (bounded label 80) ": "
+                         (if (= format :withheld) "Changed (details withheld)"
+                             (str (change-value format before) " → " (change-value format after))))) shown)
+      (> (count changes) 12) (conj "More changes available in Stripe."))))
+
 (defn message
   "Formats the event snapshot, enriching names without reading current subscription state."
   [db event]
@@ -97,26 +123,23 @@
         member (first (jdbc/query db ["SELECT person_name,organization_name,email FROM members WHERE stripe_customer_id=? ORDER BY id LIMIT 1" customer-id]))
         name (or (not-empty (:name customer)) (not-empty (:organization_name member))
                  (not-empty (:person_name member)) (:email customer) (:email member) customer-id)
-        email (or (:email customer) (:email member))
+        name (bounded name 300)
+        email (some-> (or (:email customer) (:email member)) (bounded 300))
         kind (notification-kind event)
-        previous-status (get-in event [:data :previous_attributes :status])
+        update-details (subscription-events/update-details event)
         title (case kind
                 :customer-created "New customer"
                 :created "New subscription"
-                :updated (cond
-                           (and previous-status (not= previous-status "past_due") (= "past_due" (:status subscription)))
-                           "Payment failed — subscription past due"
-                           (and (= previous-status "past_due") (= "active" (:status subscription)))
-                           "Payment recovered — subscription active"
-                           :else "Subscription updated")
+                :updated (:title update-details)
                 :cancelled "Subscription cancelled"
-                :cancellation-scheduled "Subscription cancellation scheduled"
+                :cancellation-scheduled (:title update-details)
                 :cancellation-reversed "Subscription cancellation reversed")
         items (or (seq (get-in subscription [:items :data]))
                   (when (:plan subscription) [{:plan (:plan subscription) :quantity (:quantity subscription)}]))
         _ (when (get-in subscription [:items :has_more])
             (throw (ex-info "Subscription notification has truncated items" {})))
-        details (mapv item-details items)
+        details (mapv item-details (take 6 items))
+        changes (change-lines (:changes update-details))
         end (or (:cancel_at subscription) (:current_period_end subscription)
                 (when-let [ends (seq (keep :current_period_end items))] (apply max ends)))
         cancellation (case kind
@@ -128,18 +151,20 @@
                        nil)
         customer-label (str name (when (and email (not= name email)) (str " (" email ")")))
         text (str title "\n" customer-label "\n" (str/join "\n" (map #(str (:product %) " — " (:plan %) " — " (:summary %)) details))
-                  (when cancellation (str "\n" cancellation)))
+                  (when cancellation (str "\n" cancellation))
+                  (when (seq changes) (str "\n" (str/join "\n" changes))))
+        text (bounded text 8000)
         dashboard (str "https://dashboard.stripe.com/" (when (false? (:livemode event)) "test/") (if new-customer? "customers/" "subscriptions/") (:id subscription))]
     {:mrkdwn false
      :unfurl_links false
      :unfurl_media false
      :attachments
      [{:fallback text
-       :color (case kind
-                (:created :customer-created :cancellation-reversed) "#2E9E5B"
-                :cancellation-scheduled "#E59D23"
-                :cancelled "#D14343"
-                "#3B82F6")
+       :color (or (:color update-details) (case kind
+                                            (:created :customer-created :cancellation-reversed) "#2E9E5B"
+                                            :cancellation-scheduled "#E59D23"
+                                            :cancelled "#D14343"
+                                            "#3B82F6"))
        :blocks
        (vec
         (concat
@@ -154,7 +179,7 @@
          (for [{:keys [product plan amount period]} details]
            {:type "section"
             :fields (mapv (fn [[label value]] {:type "mrkdwn" :verbatim true
-                                               :text (str "*" label "*\n" (escape-text value))})
+                                               :text (str "*" label "*\n" (bounded (escape-text (bounded value 600)) 1900))})
                           [["Membership" product] ["Plan" plan] ["Amount" amount] ["Billing period" period]])})
          (when cancellation
            [{:type "section"
@@ -164,9 +189,16 @@
                                  (.format (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm 'UTC'") (.atOffset (Instant/ofEpochSecond end) ZoneOffset/UTC))
                                  ">\nMembership remains active until then.")
                             (escape-text cancellation))}}])
+         (when (seq changes)
+           [{:type "section" :text {:type "mrkdwn" :text "*What changed*"}}])
+         (for [line changes]
+           {:type "section" :text {:type "mrkdwn" :verbatim true :text (bounded (escape-text line) 2800)}})
          [{:type "context"
            :elements [{:type "mrkdwn"
-                       :text (str "<" dashboard (if new-customer? "|View customer in Stripe>" "|View subscription in Stripe>"))}]}]))}]}))
+                       :text (str "<" dashboard (if new-customer? "|View customer in Stripe>" "|View subscription in Stripe>"))}
+                      {:type "mrkdwn" :text (str "<https://dashboard.stripe.com/"
+                                                 (when (false? (:livemode event)) "test/")
+                                                 "events/" (:id event) "|View event in Stripe>")}]}]))}]}))
 
 (defn send-message! [url body]
   (let [response (http/post url {:body (json/generate-string body) :content-type :json
