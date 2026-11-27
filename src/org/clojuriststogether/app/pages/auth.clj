@@ -305,7 +305,15 @@
                                  (email/send email-service {:to (:email member)
                                                             :from "hi@clojuriststogether.org"
                                                             :subject "Log in to Clojurists Together"
-                                                            :body (format "<p><a clicktracking=off href='%s'>Click here to log in</a>"
+                                                            :body (format (str "<p>Hello,</p>"
+                                                                               "<p>We received a request to log in to your Clojurists Together membership account. "
+                                                                               "Use the link below to log in and manage your subscription and membership details. No password is needed.</p>"
+                                                                               "<p><a clicktracking=off href='%s'>Log in to Clojurists Together</a></p>"
+                                                                               "<p>This link expires in 10 minutes and can only be used once. "
+                                                                               "If it expires, you can request a new link from the "
+                                                                               "<a clicktracking=off href='https://members.clojuriststogether.org/login'>login page</a>.</p>"
+                                                                               "<p>If you didn't request this email, you can safely ignore it.</p>"
+                                                                               "<p>Thank you for supporting the Clojure community,<br>The Clojurists Together team</p>")
                                                                           (str "https://members.clojuriststogether.org/magic?token=" login-id))
                                                             :content-type "text/html"})
                                  (template/template req
