@@ -58,6 +58,17 @@
                                                               :product {:name "Corporate membership"}))]
     (slack/message {} e)))
 
+(deftest payment-status-transitions-have-specific-headings
+  (let [m (rendered (event "updated" (assoc subscription :status "past_due") {:status "active"}))]
+    (is (= "*Payment failed — subscription past due*" (get-in m [:attachments 0 :blocks 0 :text :text])))
+    (is (.startsWith (get-in m [:attachments 0 :fallback]) "Payment failed — subscription past due\n")))
+  (let [m (rendered (event "updated" subscription {:status "past_due"}))]
+    (is (= "*Payment recovered — subscription active*" (get-in m [:attachments 0 :blocks 0 :text :text])))
+    (is (.startsWith (get-in m [:attachments 0 :fallback]) "Payment recovered — subscription active\n")))
+  (doseq [e [(event "updated" subscription {:status "trialing"})
+             (event "updated" (assoc subscription :status "past_due") {:items {:data []}})]]
+    (is (= "*Subscription updated*" (get-in (rendered e) [:attachments 0 :blocks 0 :text :text])))))
+
 (deftest corporate-message-separates-customer-product-and-plan
   (let [m (rendered (event "created" subscription {}))]
     (doseq [text ["New subscription" "Acme Corporation" "billing@acme.example" "Corporate membership" "Annual" "USD 1200 per year"]]
